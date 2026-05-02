@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Longest Substring – 3D Visualizer</title>
+<style>
+/* ══════════════════════════════════════════
+   TOKENS & RESET
+══════════════════════════════════════════ */
+:root {
+  --bg:        #0d0d14;
+  --panel:     #13131f;
+  --card:      #1a1a2e;
+  --border:    #2a2a45;
+  --text:      #e2e2f0;
+  --dim:       #6b6b8a;
+  --accent:    #4f8ef7;
+  --green:     #3dffa0;
+  --yellow:    #ffd86e;
+  --orange:    #ff9f5a;
+  --red:       #ff5a7e;
+  --purple:    #bf7cf6;
+  --teal:      #3dd9d6;
+  --pink:      #ff6bcb;
+  --mono:      'Consolas','Monaco','Courier New',monospace;
+  --ui:        -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--ui);
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(79,142,247,.07) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 30% at 80% 90%, rgba(191,124,246,.07) 0%, transparent 70%);
+}
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+header{
+  background:rgba(19,19,31,.95);
+  border-bottom:1px solid var(--border);
+  padding:8px 16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  backdrop-filter:blur(10px);
+  z-index:10;
+}
+.logo{
+  font-size:.9rem;
+  font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  white-space:nowrap;
+  letter-spacing:-.3px;
+}
+.input-grp{display:flex;align-items:center;gap:6px;font-size:.78rem}
+.input-grp label{color:var(--dim)}
+.input-grp input{
+  background:#0d0d18;
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:4px 10px;
+  border-radius:6px;
+  font-family:var(--mono);
+  font-size:.82rem;
+  width:150px;
+  outline:none;
+  transition:border-color .2s;
+}
+.input-grp input:focus{border-color:var(--accent)}
+btn,button{
+  background:linear-gradient(135deg,#4f8ef7,#7b55f5);
+  color:#fff;border:none;
+  padding:5px 12px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:.76rem;
+  font-weight:600;
+  letter-spacing:.3px;
+  transition:opacity .2s,transform .1s;
+  box-shadow:0 2px 8px rgba(79,142,247,.3);
+}
+button:hover{opacity:.85;transform:translateY(-1px)}
+button:active{transform:translateY(0)}
+button:disabled{opacity:.3;cursor:default;transform:none}
+button.sec{background:rgba(255,255,255,.08);box-shadow:none}
+button.sec:hover{background:rgba(255,255,255,.13)}
+.ctrl{display:flex;align-items:center;gap:6px}
+.spd{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--dim)}
+.spd input{width:70px;cursor:pointer;accent-color:var(--accent)}
+.step-ctr{margin-left:auto;font-size:.72rem;color:var(--dim);white-space:nowrap}
+
+/* ══════════════════════════════════════════
+   MAIN LAYOUT
+══════════════════════════════════════════ */
+.main{
+  display:grid;
+  grid-template-columns:340px 1fr 280px;
+  flex:1;
+  overflow:hidden;
+}
+
+/* ══════════════════════════════════════════
+   LEFT: CODE + ALGO EXPLAIN
+══════════════════════════════════════════ */
+.left-col{
+  display:flex;
+  flex-direction:column;
+  border-right:1px solid var(--border);
+  overflow:hidden;
+}
+.code-panel{
+  flex:1;
+  overflow-y:auto;
+  font-family:var(--mono);
+  font-size:.74rem;
+  padding:10px 0;
+  background:var(--panel);
+  scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;
+}
+.code-line{
+  display:flex;
+  align-items:flex-start;
+  padding:2px 10px 2px 0;
+  border-left:3px solid transparent;
+  line-height:1.6;
+  white-space:pre;
+  transition:background .2s;
+}
+.code-line.active{
+  background:rgba(79,142,247,.12);
+  border-left-color:var(--accent);
+  box-shadow:inset 0 0 20px rgba(79,142,247,.05);
+}
+.gutter{width:26px;text-align:right;color:var(--dim);margin-right:12px;user-select:none;flex-shrink:0}
+.kw{color:#569cd6}.ty{color:#4ec9b0}.va{color:#9cdcfe}.nu{color:#b5cea8}
+.co{color:#6a9955;font-style:italic}.ct{color:#c586c0}.fn{color:#dcdcaa}.st{color:#ce9178}
+
+/* Algo steps explainer */
+.algo-box{
+  background:var(--card);
+  border-top:1px solid var(--border);
+  padding:10px 12px;
+  font-size:.72rem;
+  max-height:200px;
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;
+}
+.algo-title{
+  font-size:.65rem;
+  letter-spacing:.1em;
+  color:var(--dim);
+  text-transform:uppercase;
+  margin-bottom:8px;
+  font-weight:700;
+}
+.algo-step{
+  display:flex;
+  gap:8px;
+  padding:5px 8px;
+  border-radius:6px;
+  margin-bottom:4px;
+  border:1px solid transparent;
+  transition:all .3s;
+  cursor:default;
+  line-height:1.4;
+}
+.algo-step.active-concept{
+  background:rgba(79,142,247,.15);
+  border-color:rgba(79,142,247,.4);
+  box-shadow:0 0 12px rgba(79,142,247,.15);
+}
+.algo-step.done-concept{
+  background:rgba(61,255,160,.06);
+  border-color:rgba(61,255,160,.2);
+}
+.algo-num{
+  width:18px;height:18px;
+  border-radius:50%;
+  background:rgba(79,142,247,.25);
+  color:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.62rem;font-weight:800;
+  flex-shrink:0;margin-top:1px;
+}
+.algo-step.active-concept .algo-num{
+  background:var(--accent);color:#fff;
+  box-shadow:0 0 8px var(--accent);
+}
+.algo-step.done-concept .algo-num{
+  background:var(--green);color:#000;
+}
+.algo-text{color:var(--text);font-size:.71rem}
+.algo-text em{color:var(--yellow);font-style:normal;font-weight:600}
+
+/* ══════════════════════════════════════════
+   CENTRE: VISUALIZATION
+══════════════════════════════════════════ */
+.viz-col{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+.viz-scroll{
+  flex:1;
+  overflow-y:auto;
+  padding:20px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:28px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;
+}
+.sec-label{
+  font-size:.63rem;
+  letter-spacing:.1em;
+  color:var(--dim);
+  text-transform:uppercase;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+/* ── 3D STRING TILES ── */
+.string-stage{
+  perspective:600px;
+  padding:30px 0 20px;
+  position:relative;
+}
+.tiles-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  transform-style:preserve-3d;
+}
+.tile-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  position:relative;
+}
+.tile{
+  width:54px;height:58px;
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);
+  font-size:1.3rem;
+  font-weight:800;
+  position:relative;
+  cursor:default;
+  transition:
+    transform .35s cubic-bezier(.34,1.56,.64,1),
+    box-shadow .35s,
+    background .3s,
+    border-color .3s;
+  /* 3D face */
+  border:1.5px solid rgba(255,255,255,.08);
+  background:linear-gradient(160deg,#1e1e34 0%,#141428 100%);
+  box-shadow:
+    0 6px 0 #0a0a16,
+    0 8px 16px rgba(0,0,0,.5),
+    inset 0 1px 0 rgba(255,255,255,.07);
+  transform:rotateX(8deg);
+}
+/* bottom "depth" edge */
+.tile::after{
+  content:'';
+  position:absolute;
+  bottom:-7px;left:4px;right:4px;
+  height:7px;
+  background:linear-gradient(180deg,#0a0a16,#07070e);
+  border-radius:0 0 8px 8px;
+  transform:rotateX(-90deg) translateZ(-3px);
+  transform-origin:top;
+}
+.tile-idx{
+  font-size:.6rem;color:var(--dim);
+  font-family:var(--mono);
+}
+/* States */
+.tile.idle{
+  background:linear-gradient(160deg,#1e1e34,#141428);
+  color:var(--dim);
+  box-shadow:0 6px 0 #0a0a16,0 8px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.tile.in-win{
+  background:linear-gradient(160deg,#1e3060,#0f1e45);
+  color:var(--yellow);
+  border-color:rgba(79,142,247,.5);
+  transform:rotateX(4deg) translateY(-6px);
+  box-shadow:
+    0 10px 0 #0a1530,
+    0 12px 30px rgba(79,142,247,.3),
+    0 0 20px rgba(79,142,247,.2),
+    inset 0 1px 0 rgba(79,142,247,.3);
+}
+.tile.right-ptr{
+  background:linear-gradient(160deg,#0d3d26,#062619);
+  color:var(--green);
+  border-color:rgba(61,255,160,.6);
+  transform:rotateX(0deg) translateY(-12px);
+  box-shadow:
+    0 14px 0 #051a10,
+    0 16px 40px rgba(61,255,160,.35),
+    0 0 30px rgba(61,255,160,.25),
+    inset 0 1px 0 rgba(61,255,160,.4);
+}
+.tile.left-ptr{
+  background:linear-gradient(160deg,#3d1530,#270d20);
+  color:var(--red);
+  border-color:rgba(255,90,126,.6);
+  transform:rotateX(0deg) translateY(-10px);
+  box-shadow:
+    0 12px 0 #180810,
+    0 14px 36px rgba(255,90,126,.35),
+    0 0 28px rgba(255,90,126,.25),
+    inset 0 1px 0 rgba(255,90,126,.4);
+}
+.tile.duplicate{
+  background:linear-gradient(160deg,#3d1515,#270d0d);
+  color:var(--red);
+  border-color:rgba(255,90,126,.8);
+  transform:rotateX(0deg) translateY(-14px) scale(1.05);
+  box-shadow:
+    0 16px 0 #180a0a,
+    0 20px 50px rgba(255,90,126,.5),
+    0 0 40px rgba(255,90,126,.4),
+    inset 0 1px 0 rgba(255,90,126,.5);
+  animation:shake .4s ease;
+}
+.tile.removing{
+  background:linear-gradient(160deg,#3d2a10,#271c08);
+  color:var(--orange);
+  border-color:rgba(255,159,90,.7);
+  transform:rotateX(0deg) translateY(-8px);
+  box-shadow:
+    0 10px 0 #181008,
+    0 12px 30px rgba(255,159,90,.35),
+    0 0 25px rgba(255,159,90,.25),
+    inset 0 1px 0 rgba(255,159,90,.4);
+  animation:pulse-remove .5s ease infinite alternate;
+}
+.tile.past{
+  opacity:.3;
+  transform:rotateX(12deg) translateY(2px) scale(.95);
+  color:#555;
+}
+@keyframes shake{
+  0%,100%{transform:rotateX(0) translateY(-14px) scale(1.05)}
+  25%{transform:rotateX(0) translateY(-14px) scale(1.05) translateX(-3px)}
+  75%{transform:rotateX(0) translateY(-14px) scale(1.05) translateX(3px)}
+}
+@keyframes pulse-remove{
+  from{box-shadow:0 10px 0 #181008,0 12px 30px rgba(255,159,90,.35),0 0 25px rgba(255,159,90,.25),inset 0 1px 0 rgba(255,159,90,.4)}
+  to{box-shadow:0 10px 0 #181008,0 12px 50px rgba(255,159,90,.55),0 0 45px rgba(255,159,90,.45),inset 0 1px 0 rgba(255,159,90,.6)}
+}
+
+/* Pointer labels above tiles */
+.ptr-tag{
+  position:absolute;
+  top:-26px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:.62rem;
+  font-weight:800;
+  padding:2px 6px;
+  border-radius:4px;
+  white-space:nowrap;
+  pointer-events:none;
+}
+.ptr-tag.L{background:rgba(255,90,126,.25);color:var(--red);border:1px solid rgba(255,90,126,.5)}
+.ptr-tag.R{background:rgba(61,255,160,.2);color:var(--green);border:1px solid rgba(61,255,160,.4)}
+.ptr-tag.LR{background:rgba(191,124,246,.25);color:var(--purple);border:1px solid rgba(191,124,246,.5)}
+
+/* window glow span */
+.win-glow{
+  position:absolute;
+  bottom:0;left:0;
+  height:3px;
+  border-radius:2px;
+  background:linear-gradient(90deg,var(--accent),var(--purple));
+  box-shadow:0 0 8px var(--accent);
+  transition:left .35s cubic-bezier(.34,1.56,.64,1),width .35s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+
+/* ── HASHSET 3D ── */
+.hashset-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  min-height:54px;
+  align-items:center;
+  padding:6px 0;
+}
+.hcell{
+  width:50px;height:50px;
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);
+  font-size:1.1rem;
+  font-weight:800;
+  position:relative;
+  animation:popUp .25s cubic-bezier(.34,1.56,.64,1);
+  transition:background .3s,border-color .3s,box-shadow .3s,transform .3s;
+  border:1.5px solid rgba(79,142,247,.5);
+  background:linear-gradient(160deg,rgba(79,142,247,.25),rgba(79,142,247,.08));
+  color:var(--accent);
+  box-shadow:0 4px 0 rgba(30,50,100,.8),0 6px 20px rgba(79,142,247,.2),inset 0 1px 0 rgba(79,142,247,.3);
+  transform:rotateX(6deg);
+}
+.hcell::after{
+  content:'';
+  position:absolute;
+  bottom:-5px;left:3px;right:3px;
+  height:5px;
+  background:rgba(20,30,60,.9);
+  border-radius:0 0 6px 6px;
+}
+.hcell.dup{
+  border-color:rgba(255,90,126,.7);
+  background:linear-gradient(160deg,rgba(255,90,126,.25),rgba(255,90,126,.08));
+  color:var(--red);
+  box-shadow:0 4px 0 rgba(80,20,30,.8),0 6px 20px rgba(255,90,126,.3),inset 0 1px 0 rgba(255,90,126,.4);
+  animation:shake .4s ease;
+}
+.hcell.removing{
+  border-color:rgba(255,159,90,.7);
+  background:linear-gradient(160deg,rgba(255,159,90,.2),rgba(255,159,90,.06));
+  color:var(--orange);
+  box-shadow:0 4px 0 rgba(80,50,20,.8),0 6px 20px rgba(255,159,90,.3),inset 0 1px 0 rgba(255,159,90,.4);
+  transform:rotateX(6deg) scale(.9);
+  opacity:.6;
+}
+@keyframes popUp{
+  from{transform:rotateX(6deg) scale(.4) translateY(10px);opacity:0}
+  to{transform:rotateX(6deg) scale(1) translateY(0);opacity:1}
+}
+.set-empty{color:var(--dim);font-size:.78rem;font-style:italic;padding:8px 0}
+
+/* ── WINDOW SUBTITLE ── */
+.win-info{
+  display:flex;gap:12px;flex-wrap:wrap;align-items:center;
+  font-size:.75rem;
+}
+.win-badge{
+  padding:4px 10px;
+  border-radius:20px;
+  font-weight:700;
+  font-family:var(--mono);
+  font-size:.75rem;
+}
+.wb-window{background:rgba(79,142,247,.15);color:var(--accent);border:1px solid rgba(79,142,247,.3)}
+.wb-max{background:rgba(61,255,160,.15);color:var(--green);border:1px solid rgba(61,255,160,.3);font-size:.82rem}
+.wb-dup{background:rgba(255,90,126,.15);color:var(--red);border:1px solid rgba(255,90,126,.3)}
+
+/* ── STATUS BAR ── */
+.status-bar{
+  background:rgba(10,10,20,.8);
+  border-top:1px solid var(--border);
+  padding:10px 16px;
+  font-size:.78rem;
+  color:var(--green);
+  line-height:1.5;
+  backdrop-filter:blur(6px);
+  min-height:42px;
+}
+.status-bar .step-lbl{color:var(--dim);font-size:.7rem;margin-right:6px}
+
+/* ══════════════════════════════════════════
+   RIGHT: VARIABLES
+══════════════════════════════════════════ */
+.var-col{
+  background:var(--panel);
+  border-left:1px solid var(--border);
+  overflow-y:auto;
+  padding:14px 12px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;
+}
+.vsec{margin-bottom:20px}
+.vsec-title{
+  font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);font-weight:700;
+  border-bottom:1px solid var(--border);
+  padding-bottom:5px;margin-bottom:10px;
+}
+.vrow{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:4px 2px;gap:6px;
+}
+.vname{color:#9cdcfe;font-family:var(--mono);font-size:.75rem}
+.vval{
+  color:var(--green);font-family:var(--mono);font-weight:700;
+  font-size:.8rem;padding:2px 8px;border-radius:5px;
+  transition:background .15s;
+}
+@keyframes flashV{0%,100%{background:transparent}50%{background:rgba(79,142,247,.35)}}
+.vval.changed{animation:flashV .45s ease}
+
+/* MaxLen hero */
+.maxlen-hero{
+  background:linear-gradient(135deg,rgba(61,255,160,.12),rgba(79,142,247,.08));
+  border:1.5px solid rgba(61,255,160,.3);
+  border-radius:12px;
+  padding:14px;
+  text-align:center;
+  margin-bottom:16px;
+  box-shadow:0 0 20px rgba(61,255,160,.08);
+}
+.mh-label{font-size:.6rem;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.mh-val{
+  font-size:2rem;font-weight:900;font-family:var(--mono);
+  background:linear-gradient(135deg,var(--green),var(--teal));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;
+}
+.mh-sub{font-size:.65rem;color:var(--dim);margin-top:4px}
+
+/* Legend */
+.legend{font-size:.67rem}
+.lrow{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.ldot{width:11px;height:11px;border-radius:3px;flex-shrink:0}
+
+/* Complexity badges */
+.complexity{
+  background:rgba(26,26,46,.8);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px;
+  margin-bottom:12px;
+}
+.cx-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.cx-label{font-size:.65rem;color:var(--dim)}
+.cx-val{font-size:.72rem;font-weight:700;font-family:var(--mono);color:var(--yellow)}
+
+/* progress bar */
+.progress-wrap{height:3px;background:rgba(255,255,255,.08);border-radius:2px;margin-bottom:14px;overflow:hidden}
+.progress-bar{
+  height:100%;
+  background:linear-gradient(90deg,var(--accent),var(--purple));
+  border-radius:2px;
+  transition:width .3s;
+  box-shadow:0 0 6px var(--accent);
+}
+
+/* ══════════════════════════════════════════
+   TABS (algo concepts)
+══════════════════════════════════════════ */
+.tabs{display:flex;gap:2px;padding:6px 8px;background:var(--card);border-bottom:1px solid var(--border)}
+.tab{
+  padding:4px 10px;border-radius:5px;font-size:.7rem;font-weight:600;
+  cursor:pointer;color:var(--dim);transition:.2s;
+  border:none;background:transparent;
+}
+.tab.active{background:rgba(79,142,247,.2);color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <span class="logo">⚡ Longest Substring Without Repeating Chars</span>
+  <div class="input-grp">
+    <label>Input:</label>
+    <input type="text" id="inputStr" value="abcabcbb" maxlength="14"/>
+    <button onclick="loadInput()">Load ↺</button>
+  </div>
+  <div class="ctrl">
+    <button id="btnPrev" class="sec" onclick="prevStep()">◀</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" class="sec" onclick="nextStep()">▶</button>
+    <div class="spd">
+      <span>Speed</span>
+      <input type="range" id="speed" min="1" max="100" value="45"/>
+    </div>
+  </div>
+  <div class="step-ctr" id="stepCtr">Step — / —</div>
+</header>
+
+<!-- PROGRESS -->
+<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:0%"></div></div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: CODE + ALGO CONCEPTS -->
+  <div class="left-col">
+    <div class="code-panel" id="codePanel">
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span><span class="kw">class</span> <span class="fn">Solution</span> {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span>  <span class="kw">public</span> <span class="ty">int</span> <span class="fn">lengthOfLongestSubstring</span>(<span class="ty">String</span> <span class="va">s</span>) {</span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span>    <span class="ty">Set</span>&lt;<span class="ty">Character</span>&gt; <span class="va">set</span> = <span class="kw">new</span> <span class="fn">HashSet</span>&lt;&gt;();</span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span>    <span class="ty">int</span> <span class="va">maxLength</span> = <span class="nu">0</span>;</span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span>    <span class="ty">int</span> <span class="va">left</span> = <span class="nu">0</span>;</span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span>    <span class="ct">for</span> (<span class="ty">int</span> <span class="va">right</span>=<span class="nu">0</span>; <span class="va">right</span>&lt;<span class="va">s</span>.<span class="fn">length</span>(); <span class="va">right</span>++) {</span></div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span>      <span class="ct">if</span> (!<span class="va">set</span>.<span class="fn">contains</span>(<span class="va">s</span>.<span class="fn">charAt</span>(<span class="va">right</span>))) {</span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span>        <span class="va">set</span>.<span class="fn">add</span>(<span class="va">s</span>.<span class="fn">charAt</span>(<span class="va">right</span>));</span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span>        <span class="va">maxLength</span> = <span class="fn">Math.max</span>(<span class="va">maxLength</span>,<span class="va">right</span>-<span class="va">left</span>+<span class="nu">1</span>);</span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span>      } <span class="ct">else</span> {</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span>        <span class="ct">while</span>(<span class="va">s</span>.<span class="fn">charAt</span>(<span class="va">left</span>) != <span class="va">s</span>.<span class="fn">charAt</span>(<span class="va">right</span>)) {</span></div>
+      <div class="code-line" id="line-12"><span class="gutter">12</span><span>          <span class="va">set</span>.<span class="fn">remove</span>(<span class="va">s</span>.<span class="fn">charAt</span>(<span class="va">left</span>));</span></div>
+      <div class="code-line" id="line-13"><span class="gutter">13</span><span>          <span class="va">left</span>++;</span></div>
+      <div class="code-line" id="line-14"><span class="gutter">14</span><span>        }</span></div>
+      <div class="code-line" id="line-15"><span class="gutter">15</span><span>        <span class="va">set</span>.<span class="fn">remove</span>(<span class="va">s</span>.<span class="fn">charAt</span>(<span class="va">left</span>)); <span class="va">left</span>++;</span></div>
+      <div class="code-line" id="line-16"><span class="gutter">16</span><span>        <span class="va">set</span>.<span class="fn">add</span>(<span class="va">s</span>.<span class="fn">charAt</span>(<span class="va">right</span>));</span></div>
+      <div class="code-line" id="line-17"><span class="gutter">17</span><span>      }</span></div>
+      <div class="code-line" id="line-18"><span class="gutter">18</span><span>    }</span></div>
+      <div class="code-line" id="line-19"><span class="gutter">19</span><span>    <span class="ct">return</span> <span class="va">maxLength</span>;</span></div>
+      <div class="code-line" id="line-20"><span class="gutter">20</span><span>  }</span></div>
+      <div class="code-line" id="line-21"><span class="gutter">21</span><span>}</span></div>
+    </div>
+
+    <!-- ALGO EXPLANATION -->
+    <div class="algo-box">
+      <div class="algo-title">📖 Algorithm — How it works</div>
+      <div class="algo-step" id="ac-1">
+        <div class="algo-num">1</div>
+        <div class="algo-text">Use <em>two pointers</em> — <em>left</em> &amp; <em>right</em> — to define a window over the string.</div>
+      </div>
+      <div class="algo-step" id="ac-2">
+        <div class="algo-num">2</div>
+        <div class="algo-text">Move <em>right</em> forward each step. Check if <em>s[right]</em> is already in the <em>HashSet</em>.</div>
+      </div>
+      <div class="algo-step" id="ac-3">
+        <div class="algo-num">3</div>
+        <div class="algo-text"><em>No duplicate</em> → Add <em>s[right]</em> to set. Update <em>maxLength = max(maxLength, right−left+1)</em>.</div>
+      </div>
+      <div class="algo-step" id="ac-4">
+        <div class="algo-num">4</div>
+        <div class="algo-text"><em>Duplicate found!</em> → Shrink window: remove chars from <em>left</em> until the duplicate is gone.</div>
+      </div>
+      <div class="algo-step" id="ac-5">
+        <div class="algo-num">5</div>
+        <div class="algo-text">Remove the duplicate itself from <em>left</em>, advance <em>left++</em>, then add new <em>s[right]</em> to set.</div>
+      </div>
+      <div class="algo-step" id="ac-6">
+        <div class="algo-num">6</div>
+        <div class="algo-text">Repeat until <em>right</em> reaches end. Return <em>maxLength</em> — the answer! 🎉</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTRE: VISUALIZATION -->
+  <div class="viz-col">
+    <div class="viz-scroll">
+
+      <!-- String tiles -->
+      <div>
+        <div class="sec-label">🧱 String — 3D Sliding Window</div>
+        <div class="string-stage">
+          <div class="tiles-row" id="tilesRow"></div>
+          <div class="win-glow" id="winGlow" style="display:none"></div>
+        </div>
+        <div class="win-info" id="winInfo" style="margin-top:6px"></div>
+      </div>
+
+      <!-- HashSet -->
+      <div>
+        <div class="sec-label">🗂️ HashSet — Characters in Window</div>
+        <div class="hashset-grid" id="hashGrid">
+          <span class="set-empty">empty — window not started</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- STATUS BAR -->
+    <div class="status-bar" id="statusBar">
+      <span class="step-lbl">—</span>Press <strong>▶ Play</strong> or <strong>Next ▶</strong> to start the visualization.
+    </div>
+  </div>
+
+  <!-- RIGHT: VARIABLES -->
+  <div class="var-col">
+
+    <!-- MaxLen hero -->
+    <div class="maxlen-hero">
+      <div class="mh-label">Max Length Found</div>
+      <div class="mh-val" id="vMaxLen">0</div>
+      <div class="mh-sub" id="vBestWin">best window: —</div>
+    </div>
+
+    <!-- Complexity -->
+    <div class="complexity">
+      <div class="cx-row"><span class="cx-label">Time</span><span class="cx-val">O(n)</span></div>
+      <div class="cx-row"><span class="cx-label">Space</span><span class="cx-val">O(k)</span></div>
+      <div style="font-size:.62rem;color:var(--dim);margin-top:4px">k = distinct chars in set</div>
+    </div>
+
+    <div class="vsec">
+      <div class="vsec-title">Stack — Pointers</div>
+      <div class="vrow"><span class="vname">left</span><span class="vval" id="vLeft">—</span></div>
+      <div class="vrow"><span class="vname">right</span><span class="vval" id="vRight">—</span></div>
+      <div class="vrow"><span class="vname">s[left]</span><span class="vval" id="vSLeft">—</span></div>
+      <div class="vrow"><span class="vname">s[right]</span><span class="vval" id="vSRight">—</span></div>
+      <div class="vrow"><span class="vname">windowSize</span><span class="vval" id="vWSize">—</span></div>
+    </div>
+
+    <div class="vsec">
+      <div class="vsec-title">Heap — Set</div>
+      <div class="vrow"><span class="vname">set.size()</span><span class="vval" id="vSetSize">0</span></div>
+      <div class="vrow"><span class="vname">contains?</span><span class="vval" id="vContains">—</span></div>
+    </div>
+
+    <div class="legend">
+      <div class="vsec-title">Legend</div>
+      <div class="lrow"><div class="ldot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div><span style="color:var(--green)">right</span> — current char</div>
+      <div class="lrow"><div class="ldot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></div><span style="color:var(--red)">left</span> — window start</div>
+      <div class="lrow"><div class="ldot" style="background:var(--accent);box-shadow:0 0 6px var(--accent)"></div>in current window</div>
+      <div class="lrow"><div class="ldot" style="background:var(--red)"></div>duplicate detected</div>
+      <div class="lrow"><div class="ldot" style="background:var(--orange)"></div>being removed</div>
+      <div class="lrow"><div class="ldot" style="background:#333"></div>outside window</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let steps = [], currentStep = 0, isPlaying = false, timer = null;
+let STR = '';
+let bestWindowStr = '';
+
+// ═══════════════════════════════════════════
+//  ALGORITHM SIMULATOR
+// ═══════════════════════════════════════════
+function generateSteps(s) {
+  const H = [];
+  const snap = (line, desc, state, concept) =>
+    H.push({ line, desc, concept: concept || 0, ...state });
+
+  const set = new Set();
+  let maxLength = 0, left = 0;
+  let bestL = 0, bestR = -1;
+
+  snap(3, 'Initialize an empty HashSet. It will store all unique characters currently inside our window.', { left, right:-1, set:new Set(set), maxLength, highlight:[], dupChar:null, removingIdx:[], bestL, bestR }, 1);
+  snap(4, 'Set maxLength = 0. We haven\'t seen any substring yet, so the best length is 0.', { left, right:-1, set:new Set(set), maxLength, highlight:[], dupChar:null, removingIdx:[], bestL, bestR }, 1);
+  snap(5, 'Set left = 0. The left pointer marks the start of our sliding window.', { left, right:-1, set:new Set(set), maxLength, highlight:[], dupChar:null, removingIdx:[], bestL, bestR }, 1);
+
+  for (let right = 0; right < s.length; right++) {
+    snap(6, `right = ${right}. Moving right pointer to index ${right} → char '${s[right]}'. Loop condition (${right} < ${s.length}) ✓`, { left, right, set:new Set(set), maxLength, highlight:Array.from({length:right-left},(_,i)=>left+i), dupChar:null, removingIdx:[], bestL, bestR }, 2);
+
+    const ch = s[right];
+    const hasDup = set.has(ch);
+    snap(7, `Check: is '${ch}' already in HashSet? HashSet = {${[...set].join(', ')||'empty'}} → Answer: ${hasDup ? '⚠️ YES — DUPLICATE!' : '✅ NO — safe to expand window'}`, { left, right, set:new Set(set), maxLength, highlight:Array.from({length:right-left},(_,i)=>left+i), dupChar:hasDup?ch:null, removingIdx:[], bestL, bestR }, hasDup?4:3);
+
+    if (!hasDup) {
+      set.add(ch);
+      const wsz = right - left + 1;
+      snap(8, `'${ch}' not in set → add it! HashSet is now {${[...set].join(', ')}}. Window [${left}..${right}] has ${wsz} unique chars.`, { left, right, set:new Set(set), maxLength, highlight:Array.from({length:wsz},(_,i)=>left+i), dupChar:null, removingIdx:[], bestL, bestR }, 3);
+      const prev = maxLength;
+      if (wsz > maxLength) { maxLength = wsz; bestL = left; bestR = right; }
+      snap(9, `Update maxLength = max(${prev}, ${right}-${left}+1) = max(${prev}, ${wsz}) = ${maxLength}. ${wsz>prev?'🏆 New best!':'No change.'}`, { left, right, set:new Set(set), maxLength, highlight:Array.from({length:wsz},(_,i)=>left+i), dupChar:null, removingIdx:[], bestL, bestR }, 3);
+    } else {
+      snap(10, `'${ch}' IS in set — duplicate! We must shrink the window from the left until '${ch}' is removed.`, { left, right, set:new Set(set), maxLength, highlight:[right], dupChar:ch, removingIdx:[], bestL, bestR }, 4);
+      while (s[left] !== ch) {
+        snap(11, `While: s[left]='${s[left]}' ≠ s[right]='${ch}' → still not reached duplicate. Remove '${s[left]}' from set and move left.`, { left, right, set:new Set(set), maxLength, highlight:[right], dupChar:ch, removingIdx:[left], bestL, bestR }, 4);
+        set.delete(s[left]);
+        snap(12, `Removed '${s[left]}' from HashSet. Set = {${[...set].join(', ')}}`, { left, right, set:new Set(set), maxLength, highlight:[right], dupChar:ch, removingIdx:[left], bestL, bestR }, 5);
+        left++;
+        snap(13, `left++ → left is now ${left}. Window shrinks from the left.`, { left, right, set:new Set(set), maxLength, highlight:[right], dupChar:ch, removingIdx:[], bestL, bestR }, 5);
+      }
+      snap(15, `s[left]='${s[left]}' = s[right]='${ch}'. Remove this duplicate from set, then left++ to ${left+1}.`, { left, right, set:new Set(set), maxLength, highlight:[right], dupChar:ch, removingIdx:[left], bestL, bestR }, 5);
+      set.delete(s[left]);
+      left++;
+      set.add(ch);
+      snap(16, `Added new '${ch}' to set. Window is now [${left}..${right}]. Set = {${[...set].join(', ')}}`, { left, right, set:new Set(set), maxLength, highlight:Array.from({length:right-left+1},(_,i)=>left+i), dupChar:null, removingIdx:[], bestL, bestR }, 5);
+    }
+  }
+  snap(19, `🎉 Done! Returned maxLength = ${maxLength}. Best window was "${s.slice(bestL, bestR+1)}" at indices [${bestL}..${bestR}].`, { left, right:s.length-1, set:new Set(set), maxLength, highlight:Array.from({length:bestR-bestL+1},(_,i)=>bestL+i), dupChar:null, removingIdx:[], bestL, bestR }, 6);
+  return H;
+}
+
+// ═══════════════════════════════════════════
+//  DOM BUILDER
+// ═══════════════════════════════════════════
+const TILE_W = 54, TILE_GAP = 10;
+
+function buildDOM(s) {
+  const row = document.getElementById('tilesRow');
+  row.innerHTML = '';
+  s.split('').forEach((ch, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'tile-wrap';
+    wrap.style.position = 'relative';
+
+    const tile = document.createElement('div');
+    tile.className = 'tile idle';
+    tile.id = `tile-${i}`;
+    tile.textContent = ch;
+
+    const idx = document.createElement('div');
+    idx.className = 'tile-idx';
+    idx.textContent = i;
+
+    wrap.appendChild(tile);
+    wrap.appendChild(idx);
+    row.appendChild(wrap);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  RENDERER
+// ═══════════════════════════════════════════
+function applyStep(s) {
+  // code highlight
+  document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+  const lEl = document.getElementById(`line-${s.line}`);
+  if (lEl) { lEl.classList.add('active'); lEl.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+
+  // status
+  const sb = document.getElementById('statusBar');
+  const pct = ((currentStep+1)/steps.length*100).toFixed(0);
+  sb.innerHTML = `<span class="step-lbl">Step ${currentStep+1}/${steps.length} (${pct}%) →</span> ${s.desc}`;
+  document.getElementById('stepCtr').textContent = `Step ${currentStep+1} / ${steps.length}`;
+  document.getElementById('progress').style.width = pct + '%';
+
+  // tiles
+  for (let i = 0; i < STR.length; i++) {
+    const tile = document.getElementById(`tile-${i}`);
+    if (!tile) continue;
+    // remove old ptr tags
+    const old = tile.parentElement.querySelector('.ptr-tag');
+    if (old) old.remove();
+
+    tile.className = 'tile';
+    if (s.removingIdx && s.removingIdx.includes(i)) {
+      tile.classList.add('removing');
+    } else if (s.dupChar && i === s.right) {
+      tile.classList.add('duplicate');
+    } else if (i === s.right && i === s.left) {
+      tile.classList.add('right-ptr');
+    } else if (i === s.right) {
+      tile.classList.add('right-ptr');
+    } else if (i === s.left && s.right >= 0 && s.highlight.includes(i)) {
+      tile.classList.add('left-ptr');
+    } else if (s.highlight && s.highlight.includes(i)) {
+      tile.classList.add('in-win');
+    } else if (s.right >= 0 && i < s.left) {
+      tile.classList.add('past');
+    } else {
+      tile.classList.add('idle');
+    }
+
+    // pointer tags
+    if (s.right >= 0) {
+      if (i === s.left && i === s.right) {
+        addPtrTag(tile.parentElement, 'L=R', 'LR');
+      } else if (i === s.left) {
+        addPtrTag(tile.parentElement, 'L', 'L');
+      } else if (i === s.right) {
+        addPtrTag(tile.parentElement, 'R', 'R');
+      }
+    }
+  }
+
+  // window glow underline
+  const glow = document.getElementById('winGlow');
+  if (s.right >= 0 && s.highlight.length > 0 && s.left <= s.right) {
+    const tileW = TILE_W + TILE_GAP;
+    glow.style.display = 'block';
+    glow.style.left = (s.left * tileW) + 'px';
+    glow.style.width = ((s.right - s.left + 1) * tileW - TILE_GAP) + 'px';
+  } else {
+    glow.style.display = 'none';
+  }
+
+  // window info badges
+  const wi = document.getElementById('winInfo');
+  wi.innerHTML = '';
+  if (s.right >= 0) {
+    const wsz = s.right - s.left + 1;
+    const winStr = STR.slice(s.left, s.right+1);
+    wi.innerHTML = `
+      <span class="win-badge wb-window">Window: "${winStr}" [${s.left}..${s.right}] size=${wsz}</span>
+      <span class="win-badge wb-max">🏆 Best: ${s.maxLength}</span>
+      ${s.dupChar ? `<span class="win-badge wb-dup">⚠️ Duplicate: '${s.dupChar}'</span>` : ''}
+    `;
+  }
+
+  // hashset
+  const hg = document.getElementById('hashGrid');
+  hg.innerHTML = '';
+  if (s.set && s.set.size > 0) {
+    s.set.forEach(ch => {
+      const cell = document.createElement('div');
+      cell.className = 'hcell';
+      if (s.dupChar === ch) cell.classList.add('dup');
+      else if (s.removingIdx && s.removingIdx.some(i => STR[i] === ch)) cell.classList.add('removing');
+      cell.textContent = ch;
+      hg.appendChild(cell);
+    });
+  } else {
+    hg.innerHTML = '<span class="set-empty">empty</span>';
+  }
+
+  // algo concept highlight
+  for (let i = 1; i <= 6; i++) {
+    const el = document.getElementById(`ac-${i}`);
+    el.className = 'algo-step';
+    if (i === s.concept) el.classList.add('active-concept');
+    else if (i < s.concept) el.classList.add('done-concept');
+  }
+  if (s.concept > 0) {
+    document.getElementById(`ac-${s.concept}`).scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+
+  // variables
+  setV('vLeft', s.left >= 0 ? s.left : '—');
+  setV('vRight', s.right >= 0 ? s.right : '—');
+  setV('vSLeft', s.left >= 0 && s.left < STR.length ? `'${STR[s.left]}'` : '—');
+  setV('vSRight', s.right >= 0 && s.right < STR.length ? `'${STR[s.right]}'` : '—');
+  setV('vWSize', s.right >= 0 ? Math.max(0, s.right - s.left + 1) : '—');
+  setV('vMaxLen', s.maxLength);
+  setV('vSetSize', s.set ? s.set.size : 0);
+  setV('vContains', s.dupChar ? `'${s.dupChar}' ✗` : (s.right >= 0 ? `'${STR[s.right]}' ✓` : '—'));
+
+  // maxlen hero
+  document.getElementById('vMaxLen').textContent = s.maxLength;
+  const bw = s.bestR >= s.bestL ? `"${STR.slice(s.bestL, s.bestR+1)}"` : '—';
+  document.getElementById('vBestWin').textContent = `best: ${bw}`;
+}
+
+function addPtrTag(wrap, text, cls) {
+  const tag = document.createElement('div');
+  tag.className = `ptr-tag ${cls}`;
+  tag.textContent = text;
+  wrap.appendChild(tag);
+}
+
+function setV(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const nv = String(val ?? '—');
+  if (el.textContent !== nv) {
+    el.textContent = nv;
+    el.classList.remove('changed');
+    void el.offsetWidth;
+    el.classList.add('changed');
+  }
+}
+
+// ═══════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════
+function nextStep(){
+  if(currentStep<steps.length-1){currentStep++;applyStep(steps[currentStep]);updateBtns();}
+  else stopPlay();
+}
+function prevStep(){
+  if(currentStep>0){currentStep--;applyStep(steps[currentStep]);updateBtns();}
+}
+function togglePlay(){ isPlaying?stopPlay():startPlay(); }
+function startPlay(){
+  if(currentStep===steps.length-1) currentStep=0;
+  isPlaying=true;
+  document.getElementById('btnPlay').textContent='⏸ Pause';
+  tick();
+}
+function stopPlay(){
+  isPlaying=false;clearTimeout(timer);
+  document.getElementById('btnPlay').textContent='▶ Play';
+}
+function tick(){
+  if(!isPlaying)return;
+  if(currentStep<steps.length-1){
+    nextStep();
+    const delay=2100-parseInt(document.getElementById('speed').value)*20;
+    timer=setTimeout(tick,delay);
+  } else stopPlay();
+}
+function updateBtns(){
+  document.getElementById('btnPrev').disabled=currentStep===0;
+  document.getElementById('btnNext').disabled=currentStep===steps.length-1;
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+function loadInput(){
+  stopPlay();
+  STR=document.getElementById('inputStr').value.trim()||'abcabcbb';
+  STR=STR.slice(0,14);
+  document.getElementById('inputStr').value=STR;
+  buildDOM(STR);
+  steps=generateSteps(STR);
+  currentStep=0;
+  applyStep(steps[0]);
+  updateBtns();
+}
+window.addEventListener('load',loadInput);
+</script>
+</body>
+</html>

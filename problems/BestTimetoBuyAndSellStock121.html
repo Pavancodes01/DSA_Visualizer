@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Profit Visualizer</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-bg: #252526;
+            --text-color: #d4d4d4;
+            --accent-color: #007acc;
+            --highlight-color: #3e3e42;
+            --green: #4ec9b0;
+            --gold: #ce9178;
+            --stack-bg: #2d2d30;
+            --heap-bg: #2d2d30;
+            --border: #454545;
+            --active-line: #37373d;
+            --active-border: #007acc;
+            --bar-default: #569cd6;
+            --bar-min: #dcdcaa;
+            --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-ui);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header / Input Section */
+        header {
+            padding: 0.75rem 1rem;
+            background-color: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-grow: 1;
+            max-width: 600px;
+        }
+
+        label { font-weight: 600; color: var(--text-color); font-size: 0.9rem; }
+
+        input[type="text"] {
+            background: #3c3c3c;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 0.4rem 0.6rem;
+            border-radius: 4px;
+            flex-grow: 1;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+        
+        input[type="text"]:focus { outline: 1px solid var(--accent-color); border-color: var(--accent-color); }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button:hover { filter: brightness(1.1); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+        
+        button.secondary { background-color: var(--highlight-color); }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .range-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+            background: rgba(0,0,0,0.2);
+            padding: 4px 8px;
+            border-radius: 15px;
+        }
+        
+        input[type=range] { cursor: pointer; }
+
+        /* Main Workspace */
+        main {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 450px 1fr 300px; /* Wider code panel */
+            overflow: hidden;
+        }
+
+        /* Panel Styling */
+        .panel {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            background: var(--bg-color);
+            min-height: 0; /* Important for nested scroll */
+        }
+        
+        .panel-header {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel-bg);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-content {
+            padding: 1rem;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Code Viewer Fixes */
+        .code-wrapper {
+            background: #1e1e1e;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden; /* Contains scrollbars */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-container {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            background: #1e1e1e;
+        }
+
+        .code-line {
+            display: flex;
+            width: 100%;
+            min-width: max-content; /* Ensures highlight spans full width on scroll */
+        }
+
+        .code-line.active {
+            background-color: var(--active-line);
+            border-left: 3px solid var(--accent-color);
+        }
+        
+        /* Gutter for line numbers */
+        .gutter {
+            width: 40px;
+            text-align: right;
+            padding-right: 10px;
+            color: #6e7681;
+            background-color: #1e1e1e;
+            user-select: none;
+            border-right: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        /* Actual code content */
+        .code-text {
+            padding-left: 15px;
+            padding-right: 10px;
+            color: #d4d4d4;
+            white-space: pre; /* Preserves indentation */
+        }
+
+        /* Syntax Highlighting */
+        .keyword { color: #569cd6; } /* Blue */
+        .type { color: #4ec9b0; } /* Teal */
+        .var { color: #9cdcfe; } /* Light Blue */
+        .control { color: #c586c0; } /* Purple */
+        .num { color: #b5cea8; } /* Light Green */
+        .obj { color: #ce9178; } /* Orange/String color */
+        .comment { color: #6a9955; font-style: italic; }
+
+        /* Visualization Area */
+        .viz-area {
+            background: #121212;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-bar {
+            background: #252526;
+            padding: 0.8rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--green);
+            border-bottom: 1px solid var(--border);
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .chart-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 2rem;
+            gap: 15px;
+            position: relative;
+            overflow: auto;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 50px;
+            transition: transform 0.3s;
+        }
+
+        .bar-val { font-size: 0.9rem; margin-bottom: 8px; font-weight: bold; color: #ccc; }
+        .bar-idx { 
+            margin-top: 8px; 
+            font-size: 0.85rem; 
+            color: #666; 
+            font-family: var(--font-mono); 
+            background: #222;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .bar {
+            width: 100%;
+            background-color: var(--bar-default);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.4s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.3s;
+            position: relative;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        /* Pointers & Markers */
+        .pointer-wrapper {
+            position: absolute;
+            bottom: -50px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            transition: all 0.3s;
+            opacity: 0;
+        }
+        
+        .pointer-tag {
+            background: var(--accent-color);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            position: relative;
+        }
+        .pointer-tag::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 5px solid var(--accent-color);
+        }
+
+        .min-marker {
+            position: absolute;
+            top: -25px;
+            color: var(--green);
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: none;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* Memory Area */
+        .memory-section {
+            background: var(--stack-bg);
+            border-radius: 6px;
+            padding: 0;
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .mem-header {
+            background: #333;
+            padding: 5px 10px;
+            font-size: 0.75rem;
+            color: #888;
+            border-bottom: 1px solid #444;
+            text-transform: uppercase;
+        }
+
+        .memory-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #3e3e42;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+        }
+        .memory-row:last-child { border-bottom: none; }
+
+        .mem-label { color: var(--var); }
+        .mem-val { font-weight: bold; color: var(--num); transition: color 0.3s; }
+        .mem-val.highlight { 
+            animation: flash 0.8s ease; 
+            color: #fff;
+        }
+
+        @keyframes flash {
+            0% { background-color: var(--accent-color); }
+            100% { background-color: transparent; }
+        }
+
+        .heap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 4px;
+            padding: 10px;
+        }
+
+        .heap-cell {
+            background: #1e1e1e;
+            border: 1px solid #555;
+            text-align: center;
+            padding: 6px;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            color: #888;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+        .heap-cell.accessed { color: white; border-color: var(--accent-color); background: rgba(0, 122, 204, 0.1); }
+
+        /* Logic specific styles */
+        .bar.is-min { background-color: var(--green); box-shadow: 0 0 15px rgba(78, 201, 176, 0.4); }
+        .bar.is-current { background-color: #f1fa8c; }
+        .bar.is-profit { background-color: var(--gold); }
+        
+        /* Profit overlay line */
+        .profit-connector-line {
+            position: absolute;
+            background: var(--gold);
+            height: 2px;
+            z-index: 5;
+            transform-origin: 0 50%;
+            pointer-events: none;
+            display: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .profit-connector-drop {
+            position: absolute;
+            width: 2px;
+            background: var(--gold);
+            border-left: 2px dashed var(--gold);
+            opacity: 0.5;
+            background: none;
+            z-index: 4;
+            display: none;
+        }
+
+        .profit-tooltip {
+            position: absolute;
+            color: #fff;
+            background: var(--gold);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            font-family: var(--font-mono);
+            transform: translate(-50%, -140%);
+            display: none;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        /* Responsiveness */
+        @media (max-width: 1100px) {
+            main {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 400px auto;
+                overflow-y: auto;
+            }
+            .panel { border-right: none; border-bottom: 1px solid var(--border); height: auto; }
+            .chart-container { min-height: 300px; padding: 1rem; }
+            .code-wrapper { max-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="input-group">
+        <label>Input Array:</label>
+        <input type="text" id="pricesInput" value="7, 1, 5, 3, 6, 4" placeholder="e.g. 7, 1, 5, 3, 6, 4">
+        <button onclick="initApp()">Load & Reset</button>
+    </div>
+    
+    <div class="control-group">
+        <div class="controls">
+            <button class="secondary" onclick="prevStep()" id="btnPrev" disabled title="Previous Step">⏮ Prev</button>
+            <button onclick="togglePlay()" id="btnPlay" title="Play/Pause Animation">▶ Play</button>
+            <button class="secondary" onclick="nextStep()" id="btnNext" disabled title="Next Step">Next ⏭</button>
+            <button class="secondary" onclick="reset()" title="Reset">↺</button>
+        </div>
+        <div class="range-wrap">
+            <span>🐢</span>
+            <input type="range" id="speedRange" min="100" max="2000" value="1000" step="100" style="direction: rtl">
+            <span>🐇</span>
+        </div>
+    </div>
+</header>
+
+<main>
+    <!-- Left Panel: Code -->
+    <div class="panel">
+        <div class="panel-header">
+            <span>Algorithm.java</span>
+            <span>O(n) Time | O(1) Space</span>
+        </div>
+        <div class="panel-content">
+            <div class="code-wrapper">
+                <div class="code-container" id="codeContainer">
+                    <!-- Line 1 -->
+                    <div class="code-line" id="line-0">
+                        <div class="gutter">1</div>
+                        <div class="code-text"><span class="keyword">public int</span> maxProfit(<span class="type">int</span>[] <span class="var">prices</span>) {</div>
+                    </div>
+                    <!-- Line 2 -->
+                    <div class="code-line" id="line-1">
+                        <div class="gutter">2</div>
+                        <div class="code-text">    <span class="type">int</span> <span class="var">minPrice</span> = Integer.MAX_VALUE;</div>
+                    </div>
+                    <!-- Line 3 -->
+                    <div class="code-line" id="line-2">
+                        <div class="gutter">3</div>
+                        <div class="code-text">    <span class="type">int</span> <span class="var">maxProfit</span> = <span class="num">0</span>;</div>
+                    </div>
+                    <!-- Line 4 -->
+                    <div class="code-line" id="line-3">
+                        <div class="gutter">4</div>
+                        <div class="code-text">    <span class="control">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>; i < prices.length; i++) {</div>
+                    </div>
+                    <!-- Line 5 -->
+                    <div class="code-line" id="line-4">
+                        <div class="gutter">5</div>
+                        <div class="code-text">        <span class="control">if</span> (prices[i] < minPrice) {</div>
+                    </div>
+                    <!-- Line 6 -->
+                    <div class="code-line" id="line-5">
+                        <div class="gutter">6</div>
+                        <div class="code-text">            minPrice = prices[i];</div>
+                    </div>
+                    <!-- Line 7 -->
+                    <div class="code-line" id="line-6">
+                        <div class="gutter">7</div>
+                        <div class="code-text">        } <span class="control">else if</span> (prices[i] - minPrice > maxProfit) {</div>
+                    </div>
+                    <!-- Line 8 -->
+                    <div class="code-line" id="line-7">
+                        <div class="gutter">8</div>
+                        <div class="code-text">            maxProfit = prices[i] - minPrice;</div>
+                    </div>
+                    <!-- Line 9 -->
+                    <div class="code-line" id="line-8">
+                        <div class="gutter">9</div>
+                        <div class="code-text">        }</div>
+                    </div>
+                    <!-- Line 10 -->
+                    <div class="code-line" id="line-9">
+                        <div class="gutter">10</div>
+                        <div class="code-text">    }</div>
+                    </div>
+                    <!-- Line 11 -->
+                    <div class="code-line" id="line-10">
+                        <div class="gutter">11</div>
+                        <div class="code-text">    <span class="control">return</span> maxProfit;</div>
+                    </div>
+                    <!-- Line 12 -->
+                    <div class="code-line" id="line-11">
+                        <div class="gutter">12</div>
+                        <div class="code-text">}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; font-size: 0.85rem; color: #888; background: #252526; padding: 10px; border-radius: 4px; border: 1px solid #333;">
+                <p style="margin: 0 0 5px 0; color: #ccc;"><strong>Approach:</strong></p>
+                <p style="margin: 0;">We traverse the array once. We dynamically update the lowest price seen so far. For every subsequent price, we calculate the potential profit if we sold today. If that profit is the highest seen, we record it.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Center: Visualization -->
+    <div class="panel viz-area">
+        <div class="status-bar">
+            <span style="color: #666; margin-right: 10px;">Status:</span>
+            <span id="statusBar" style="color: var(--green); font-weight: 500;">Ready...</span>
+        </div>
+        <div class="chart-container" id="chartContainer">
+            <!-- Dynamic Content -->
+            <div class="profit-connector-line" id="profitLine"></div>
+            <div class="profit-connector-drop" id="profitDropLeft"></div>
+            <div class="profit-connector-drop" id="profitDropRight"></div>
+            <div class="profit-tooltip" id="profitLabel">+0</div>
+        </div>
+    </div>
+
+    <!-- Right: Memory -->
+    <div class="panel">
+        <div class="panel-header">Memory State</div>
+        <div class="panel-content">
+            
+            <!-- Stack -->
+            <div style="font-size: 0.8rem; color: var(--gold); margin-bottom: 5px;">STACK FRAMES</div>
+            <div class="memory-section">
+                <div class="mem-header">Local Variables</div>
+                <div class="memory-row">
+                    <span class="mem-label">i</span>
+                    <span class="mem-val" id="mem-i">-</span>
+                </div>
+                <div class="memory-row">
+                    <span class="mem-label">minPrice</span>
+                    <span class="mem-val" id="mem-min">MAX</span>
+                </div>
+                <div class="memory-row">
+                    <span class="mem-label">maxProfit</span>
+                    <span class="mem-val" id="mem-profit">0</span>
+                </div>
+                <div class="memory-row" style="background: rgba(255,255,255,0.05);">
+                    <span class="mem-label">currentProfit</span>
+                    <span class="mem-val" id="mem-temp">-</span>
+                </div>
+            </div>
+
+            <!-- Heap -->
+            <div style="font-size: 0.8rem; color: var(--gold); margin-bottom: 5px;">HEAP MEMORY</div>
+            <div class="memory-section">
+                <div class="mem-header">int[] prices @ 0x4F3A</div>
+                <div class="heap-grid" id="heapArray">
+                    <!-- Heap cells injected here -->
+                </div>
+            </div>
+            
+            <div style="margin-top: auto; font-size: 0.75rem; color: #555; text-align: center;">
+                Values updated in real-time
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // --- Application State ---
+    let prices = [];
+    let steps = [];
+    let currentStep = 0;
+    let isPlaying = false;
+    let timer = null;
+    let maxVal = 0;
+
+    // --- DOM Elements ---
+    const inputEl = document.getElementById('pricesInput');
+    const chartEl = document.getElementById('chartContainer');
+    const heapEl = document.getElementById('heapArray');
+    const statusEl = document.getElementById('statusBar');
+    const speedEl = document.getElementById('speedRange');
+    
+    // Profit Visuals
+    const profitLine = document.getElementById('profitLine');
+    const profitLabel = document.getElementById('profitLabel');
+    const profitDropLeft = document.getElementById('profitDropLeft');
+    const profitDropRight = document.getElementById('profitDropRight');
+
+    // Memory
+    const memI = document.getElementById('mem-i');
+    const memMin = document.getElementById('mem-min');
+    const memProfit = document.getElementById('mem-profit');
+    const memTemp = document.getElementById('mem-temp');
+
+    // --- Logic Class ---
+    class Step {
+        constructor(line, i, minPrice, maxProfit, desc) {
+            this.line = line;
+            this.i = i;
+            this.minPrice = minPrice;
+            this.maxProfit = maxProfit;
+            this.desc = desc;
+        }
+    }
+
+    // --- Initialization ---
+    function initApp() {
+        stopPlay();
+        const raw = inputEl.value;
+        try {
+            prices = raw.split(',').map(x => parseInt(x.trim())).filter(n => !isNaN(n));
+            if (prices.length === 0) throw new Error("Empty array");
+            maxVal = Math.max(...prices);
+        } catch (e) {
+            alert("Invalid Input. Please enter comma separated numbers (e.g. 7, 1, 5, 3).");
+            return;
+        }
+
+        generateSteps();
+        renderInitialState();
+        currentStep = 0;
+        applyStep(0);
+        updateButtons();
+    }
+
+    function generateSteps() {
+        steps = [];
+        let minPrice = Infinity;
+        let maxProfit = 0;
+
+        // Init Step
+        steps.push(new Step(1, -1, Infinity, 0, "Initialize minPrice to Integer.MAX_VALUE"));
+        steps.push(new Step(2, -1, Infinity, 0, "Initialize maxProfit to 0"));
+
+        for (let i = 0; i < prices.length; i++) {
+            // Loop Start
+            steps.push(new Step(3, i, minPrice, maxProfit, `Start iteration i = ${i}. Reading prices[${i}] = ${prices[i]}`));
+
+            // Check Min
+            steps.push(new Step(4, i, minPrice, maxProfit, `Check: Is ${prices[i]} < ${minPrice === Infinity ? 'MAX' : minPrice}?`));
+
+            if (prices[i] < minPrice) {
+                minPrice = prices[i];
+                steps.push(new Step(5, i, minPrice, maxProfit, `True. Update minPrice to ${minPrice}`));
+            } else {
+                // Check Max Profit
+                let potential = prices[i] - minPrice;
+                steps.push(new Step(6, i, minPrice, maxProfit, `False. Calculate profit: ${prices[i]} - ${minPrice} = ${potential}`));
+                
+                if (potential > maxProfit) {
+                    maxProfit = potential;
+                    steps.push(new Step(7, i, minPrice, maxProfit, `True (${potential} > ${maxProfit}). New Max Profit = ${maxProfit}!`));
+                } else {
+                     steps.push(new Step(8, i, minPrice, maxProfit, `False (${potential} <= ${maxProfit}). No update.`));
+                }
+            }
+        }
+        steps.push(new Step(10, prices.length, minPrice, maxProfit, `Loop finished. Return result: ${maxProfit}`));
+    }
+
+    // --- Rendering ---
+    function renderInitialState() {
+        // Clear dynamic bars but keep the profit overlays
+        const overlays = [profitLine, profitLabel, profitDropLeft, profitDropRight];
+        chartEl.innerHTML = '';
+        overlays.forEach(el => chartEl.appendChild(el));
+
+        heapEl.innerHTML = '';
+
+        prices.forEach((val, idx) => {
+            // 1. Chart Bars
+            const group = document.createElement('div');
+            group.className = 'bar-group';
+            
+            // Value Label
+            const labelVal = document.createElement('div');
+            labelVal.className = 'bar-val';
+            labelVal.innerText = val;
+
+            // The Bar
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            bar.id = `bar-${idx}`;
+            // Dynamic Height Calculation
+            const h = maxVal > 0 ? (val / maxVal) * 200 : 20; 
+            const finalHeight = Math.max(h, 30); // Min height 30px
+            bar.style.height = `${finalHeight}px`;
+
+            // Index Label
+            const labelIdx = document.createElement('div');
+            labelIdx.className = 'bar-idx';
+            labelIdx.innerText = idx;
+
+            // Pointer Container
+            const ptrWrap = document.createElement('div');
+            ptrWrap.className = 'pointer-wrapper';
+            ptrWrap.id = `ptr-${idx}`;
+            
+            const ptrTag = document.createElement('div');
+            ptrTag.className = 'pointer-tag';
+            ptrTag.innerText = 'i';
+            ptrWrap.appendChild(ptrTag);
+
+            // Min Marker
+            const minMark = document.createElement('div');
+            minMark.className = 'min-marker';
+            minMark.id = `min-${idx}`;
+            minMark.innerText = '▼';
+            group.appendChild(minMark);
+
+            group.appendChild(labelVal);
+            group.appendChild(bar);
+            group.appendChild(labelIdx);
+            group.appendChild(ptrWrap);
+            chartEl.appendChild(group);
+
+            // 2. Heap Cells
+            const cell = document.createElement('div');
+            cell.className = 'heap-cell';
+            cell.innerText = val;
+            cell.id = `heap-${idx}`;
+            heapEl.appendChild(cell);
+        });
+    }
+
+    function applyStep(stepIndex) {
+        const s = steps[stepIndex];
+        
+        // 1. Highlight Code
+        document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+        const activeLine = document.getElementById(`line-${s.line}`);
+        if(activeLine) {
+            activeLine.classList.add('active');
+            // Ensure visibility within scroll container
+            const container = document.getElementById('codeContainer').parentElement;
+            const topPos = activeLine.offsetTop;
+            container.scrollTop = topPos - container.clientHeight / 2 + activeLine.clientHeight / 2;
+        }
+
+        // 2. Update Status Text
+        statusEl.innerText = s.desc;
+
+        // 3. Update Memory Variables
+        updateMemVal(memI, (s.i === -1 || s.i === prices.length) ? '-' : s.i);
+        updateMemVal(memMin, s.minPrice === Infinity ? 'MAX' : s.minPrice);
+        updateMemVal(memProfit, s.maxProfit);
+        
+        // Logic for "currentProfit" temp variable
+        if(s.i >= 0 && s.i < prices.length && (s.line === 6 || s.line === 7 || s.line === 8) && s.minPrice !== Infinity) {
+            updateMemVal(memTemp, prices[s.i] - s.minPrice);
+        } else {
+            memTemp.innerText = '-';
+        }
+
+        // 4. Update Visuals
+        resetVisuals();
+
+        if (s.i >= 0 && s.i < prices.length) {
+            // Pointer 'i'
+            const ptr = document.getElementById(`ptr-${s.i}`);
+            const bar = document.getElementById(`bar-${s.i}`);
+            const heap = document.getElementById(`heap-${s.i}`);
+
+            if(ptr) ptr.style.opacity = '1';
+            if(bar) bar.classList.add('is-current');
+            if(heap) heap.classList.add('accessed');
+
+            // Find MinPrice Bar
+            if (s.minPrice !== Infinity) {
+                // Find index of the FIRST occurrence of current minPrice up to i
+                let minIdx = -1;
+                for(let k=0; k<=s.i; k++) {
+                    if (prices[k] === s.minPrice) {
+                        minIdx = k;
+                        break;
+                    }
+                }
+
+                if (minIdx !== -1) {
+                    const minBar = document.getElementById(`bar-${minIdx}`);
+                    const minMarker = document.getElementById(`min-${minIdx}`);
+                    if(minBar) minBar.classList.add('is-min');
+                    if(minMarker) minMarker.style.display = 'block';
+
+                    // Visualization Logic for Profit lines
+                    if (s.line === 6 || s.line === 7 || s.line === 8) {
+                        // We are calculating profit between minIdx and current i
+                        if (minIdx !== s.i) {
+                            const profitVal = prices[s.i] - s.minPrice;
+                            drawProfitOverlay(minIdx, s.i, profitVal, s.line === 7);
+                            if (s.line === 7) {
+                                bar.classList.add('is-profit');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function resetVisuals() {
+        document.querySelectorAll('.bar').forEach(b => {
+            b.className = 'bar';
+            b.style.transform = "none";
+        });
+        document.querySelectorAll('.pointer-wrapper').forEach(p => p.style.opacity = '0');
+        document.querySelectorAll('.min-marker').forEach(m => m.style.display = 'none');
+        document.querySelectorAll('.heap-cell').forEach(c => c.classList.remove('accessed'));
+        
+        profitLine.style.display = 'none';
+        profitLabel.style.display = 'none';
+        profitDropLeft.style.display = 'none';
+        profitDropRight.style.display = 'none';
+    }
+
+    function drawProfitOverlay(idx1, idx2, amount, isRecord) {
+        const b1 = document.getElementById(`bar-${idx1}`);
+        const b2 = document.getElementById(`bar-${idx2}`);
+        if(!b1 || !b2) return;
+
+        // Coordinates
+        const r1 = b1.getBoundingClientRect();
+        const r2 = b2.getBoundingClientRect();
+        const cRect = chartEl.getBoundingClientRect();
+
+        const x1 = (r1.left + r1.width/2) - cRect.left + chartEl.scrollLeft;
+        const y1 = r1.top - cRect.top; // Top of bar 1 (Min)
+        
+        const x2 = (r2.left + r2.width/2) - cRect.left + chartEl.scrollLeft;
+        const y2 = r2.top - cRect.top; // Top of bar 2 (Current)
+
+        // Draw horizontal line at the level of the BUY price (y1) extending to x2?
+        // Or connect tops? Let's connect tops for visual clarity of difference.
+        
+        const centerX = (x1 + x2) / 2;
+        const topY = Math.min(y1, y2) - 15; // Hover above the highest bar
+
+        // Line Logic
+        const length = x2 - x1;
+        
+        // 1. Horizontal connecting line
+        profitLine.style.width = `${length}px`;
+        profitLine.style.left = `${x1}px`;
+        profitLine.style.top = `${topY}px`;
+        profitLine.style.transform = 'none';
+        profitLine.style.background = isRecord ? '#ce9178' : '#666';
+        profitLine.style.display = 'block';
+
+        // 2. Drop lines to bars
+        profitDropLeft.style.height = `${(y1 - topY)}px`;
+        profitDropLeft.style.left = `${x1}px`;
+        profitDropLeft.style.top = `${topY}px`;
+        profitDropLeft.style.borderColor = isRecord ? '#ce9178' : '#666';
+        profitDropLeft.style.display = 'block';
+
+        profitDropRight.style.height = `${(y2 - topY)}px`;
+        profitDropRight.style.left = `${x2}px`;
+        profitDropRight.style.top = `${topY}px`;
+        profitDropRight.style.borderColor = isRecord ? '#ce9178' : '#666';
+        profitDropRight.style.display = 'block';
+
+        // 3. Label
+        profitLabel.style.left = `${centerX}px`;
+        profitLabel.style.top = `${topY}px`;
+        profitLabel.innerText = `Profit: ${amount}`;
+        profitLabel.style.background = isRecord ? '#ce9178' : '#444';
+        profitLabel.style.display = 'block';
+    }
+
+    function updateMemVal(el, newVal) {
+        if(el.innerText != newVal) {
+            el.innerText = newVal;
+            el.classList.remove('highlight');
+            void el.offsetWidth; // trigger reflow
+            el.classList.add('highlight');
+        }
+    }
+
+    // --- Control Handlers ---
+    function nextStep() {
+        if (currentStep < steps.length - 1) {
+            currentStep++;
+            applyStep(currentStep);
+            updateButtons();
+        } else {
+            stopPlay();
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 0) {
+            currentStep--;
+            applyStep(currentStep);
+            updateButtons();
+        }
+    }
+
+    function togglePlay() {
+        if (isPlaying) stopPlay();
+        else startPlay();
+    }
+
+    function startPlay() {
+        if(currentStep === steps.length - 1) currentStep = -1; 
+        isPlaying = true;
+        document.getElementById('btnPlay').innerHTML = '⏸ Pause';
+        playStep();
+    }
+
+    function stopPlay() {
+        isPlaying = false;
+        clearTimeout(timer);
+        document.getElementById('btnPlay').innerHTML = '▶ Play';
+    }
+
+    function playStep() {
+        if (!isPlaying) return;
+        if (currentStep < steps.length - 1) {
+            nextStep();
+            const delay = 2100 - parseInt(speedEl.value); 
+            timer = setTimeout(playStep, delay);
+        } else {
+            stopPlay();
+        }
+    }
+
+    function reset() {
+        stopPlay();
+        currentStep = 0;
+        applyStep(0);
+        updateButtons();
+    }
+
+    function updateButtons() {
+        document.getElementById('btnPrev').disabled = currentStep === 0;
+        document.getElementById('btnNext').disabled = currentStep === steps.length - 1;
+    }
+
+    // Boot
+    window.addEventListener('load', initApp);
+
+</script>
+</body>
+</html>

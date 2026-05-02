@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Container With Most Water Visualizer</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-bg: #252526;
+            --text-color: #d4d4d4;
+            --accent-color: #007acc;
+            --highlight-bg: #264f78;
+            --water-color: rgba(64, 169, 255, 0.4);
+            --water-border: #40a9ff;
+            --bar-color: #4ec9b0;
+            --bar-inactive: #3c3c3c;
+            --pointer-l: #ce9178;
+            --pointer-r: #dcdcaa;
+            --font-code: 'Consolas', 'Monaco', 'Courier New', monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-ui);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header & Controls */
+        header {
+            background-color: var(--panel-bg);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-grow: 1;
+            justify-content: flex-end;
+        }
+
+        input[type="text"] {
+            background: #3c3c3c;
+            border: 1px solid #555;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: var(--font-code);
+            width: 200px;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        /* Main Layout */
+        main {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        /* Canvas Area */
+        #viz-container {
+            position: relative;
+            background-color: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Right Panel */
+        aside {
+            background-color: var(--panel-bg);
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Code View */
+        .code-view {
+            background-color: #1e1e1e;
+            padding: 10px;
+            font-family: var(--font-code);
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
+            border-bottom: 1px solid #333;
+        }
+
+        .code-line {
+            padding: 0 5px;
+            display: block;
+            white-space: pre;
+        }
+
+        .code-line.active {
+            background-color: var(--highlight-bg);
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .comment { color: #6a9955; }
+        .keyword { color: #569cd6; }
+        .type { color: #4ec9b0; }
+        .method { color: #dcdcaa; }
+
+        /* Memory Panel */
+        .memory-panel {
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 4px;
+        }
+
+        .stack-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .var-card {
+            background: #333;
+            padding: 8px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #444;
+            transition: background-color 0.2s;
+        }
+
+        .var-card.changed {
+            background: #444;
+            border-color: var(--accent-color);
+        }
+
+        .var-name {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        .var-value {
+            font-family: var(--font-code);
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .status-msg {
+            background: #2d2d2d;
+            border-left: 4px solid var(--bar-color);
+            padding: 10px;
+            font-size: 0.9rem;
+            border-radius: 2px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        @media (max-width: 900px) {
+            main {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+            aside {
+                border-left: none;
+                border-top: 1px solid #333;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🌊 Container With Most Water</h1>
+    <div class="controls">
+        <input type="text" id="inputArray" value="1,8,6,2,5,4,8,3,7">
+        <button id="resetBtn">Reset</button>
+        <button id="playBtn">▶ Play</button>
+        <button id="stepBtn">Step</button>
+        <div class="slider-container">
+            <span>🐢</span>
+            <input type="range" id="speedSlider" min="1" max="100" value="50">
+            <span>🐇</span>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div id="viz-container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <aside>
+        
+        <div class="code-view">
+<span class="code-line" id="line-1"><span class="keyword">public</span> <span class="keyword">int</span> <span class="method">maxArea</span>(<span class="keyword">int</span>[] height) {</span>
+<span class="code-line" id="line-2">    <span class="keyword">int</span> left = <span class="type">0</span>;</span>
+<span class="code-line" id="line-3">    <span class="keyword">int</span> right = height.length - <span class="type">1</span>;</span>
+<span class="code-line" id="line-4">    <span class="keyword">int</span> maxArea = <span class="type">0</span>;</span>
+<span class="code-line" id="line-5"></span>
+<span class="code-line" id="line-6">    <span class="keyword">while</span> (left < right) {</span>
+<span class="code-line" id="line-7">        <span class="keyword">int</span> h = Math.min(height[left], height[right]);</span>
+<span class="code-line" id="line-8">        <span class="keyword">int</span> w = right - left;</span>
+<span class="code-line" id="line-9">        <span class="keyword">int</span> currentArea = h * w;</span>
+<span class="code-line" id="line-10">        maxArea = Math.max(maxArea, currentArea);</span>
+<span class="code-line" id="line-11"></span>
+<span class="code-line" id="line-12">        <span class="keyword">if</span> (height[left] < height[right]) {</span>
+<span class="code-line" id="line-13">            left++;</span>
+<span class="code-line" id="line-14">        } <span class="keyword">else</span> {</span>
+<span class="code-line" id="line-15">            right--;</span>
+<span class="code-line" id="line-16">        }</span>
+<span class="code-line" id="line-17">    }</span>
+<span class="code-line" id="line-18">    <span class="keyword">return</span> maxArea;</span>
+<span class="code-line" id="line-19">}</span>
+        </div>
+
+        <div class="memory-panel">
+            <div class="panel-title">Stack Memory</div>
+            <div class="stack-grid">
+                <div class="var-card" id="card-left">
+                    <span class="var-name">left</span>
+                    <span class="var-value" style="color: var(--pointer-l);" id="val-left">-</span>
+                </div>
+                <div class="var-card" id="card-right">
+                    <span class="var-name">right</span>
+                    <span class="var-value" style="color: var(--pointer-r);" id="val-right">-</span>
+                </div>
+                <div class="var-card" id="card-current">
+                    <span class="var-name">currentArea</span>
+                    <span class="var-value" style="color: #40a9ff;" id="val-current">-</span>
+                </div>
+                <div class="var-card" id="card-max">
+                    <span class="var-name">maxArea</span>
+                    <span class="var-value" style="color: #4ec9b0;" id="val-max">0</span>
+                </div>
+            </div>
+
+            <div class="panel-title">Calculations</div>
+            <div class="status-msg" id="statusMsg">
+                Ready to start visualization.
+            </div>
+            
+            <div class="panel-title" style="margin-top: 10px;">Variables (Heap Ref)</div>
+            <div style="font-family: var(--font-code); font-size: 0.85em; color: #aaa;">
+                <p>height[left] = <span id="val-hl" style="color:white">-</span></p>
+                <p>height[right] = <span id="val-hr" style="color:white">-</span></p>
+            </div>
+        </div>
+    </aside>
+</main>
+
+<script>
+/**
+ * Animation & Logic Controller
+ */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const container = document.getElementById('viz-container');
+
+// Elements
+const elInput = document.getElementById('inputArray');
+const elLeft = document.getElementById('val-left');
+const elRight = document.getElementById('val-right');
+const elCurrent = document.getElementById('val-current');
+const elMax = document.getElementById('val-max');
+const elHL = document.getElementById('val-hl');
+const elHR = document.getElementById('val-hr');
+const elStatus = document.getElementById('statusMsg');
+const elPlayBtn = document.getElementById('playBtn');
+const elSlider = document.getElementById('speedSlider');
+
+// State
+let heightArr = [];
+let frames = [];
+let currentFrame = 0;
+let isPlaying = false;
+let playInterval = null;
+
+// Colors
+const COL_BAR = '#4ec9b0';
+const COL_BAR_BG = '#3c3c3c';
+const COL_LEFT = '#ce9178'; 
+const COL_RIGHT = '#dcdcaa';
+const COL_WATER = 'rgba(64, 169, 255, 0.3)';
+const COL_WATER_STROKE = '#40a9ff';
+
+// --- Logic ---
+
+function parseInput() {
+    const raw = elInput.value;
+    // basic validation
+    heightArr = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n >= 0);
+    // limit height to prevent visual bugs
+    heightArr = heightArr.map(h => Math.min(h, 100)); // cap at 100 logical units
+    if (heightArr.length < 2) {
+        heightArr = [1, 1]; // Fallback
+        elStatus.innerText = "Error: Need at least 2 numbers.";
+    }
+    resetViz();
+}
+
+function generateFrames() {
+    frames = [];
+    const h = [...heightArr];
+    let l = 0;
+    let r = h.length - 1;
+    let max = 0;
+
+    // Initial frame
+    frames.push({
+        l: 0, r: h.length -1, 
+        max: 0, cur: 0, 
+        line: 2, 
+        msg: "Initialize pointers: left start, right end.",
+        scanLine: null
+    });
+
+    while (l < r) {
+        // Frame: Select Loop
+        frames.push({
+            l, r, max, cur: 0, line: 6,
+            msg: `Checking loop condition: ${l} < ${r} (True)`
+        });
+
+        const hLeft = h[l];
+        const hRight = h[r];
+        const minH = Math.min(hLeft, hRight);
+        const width = r - l;
+        const currentArea = minH * width;
+
+        // Frame: Calc Height
+        frames.push({
+            l, r, max, cur: 0, line: 7,
+            msg: `Height = min(${hLeft}, ${hRight}) = ${minH}`
+        });
+
+        // Frame: Calc Width & Area
+        frames.push({
+            l, r, max, cur: currentArea, line: 9,
+            msg: `Area = height(${minH}) × width(${width}) = ${currentArea}`,
+            showWater: true,
+            waterHeight: minH
+        });
+
+        // Frame: Update Max
+        const newMax = Math.max(max, currentArea);
+        const changed = newMax > max;
+        frames.push({
+            l, r, max: newMax, cur: currentArea, line: 10,
+            msg: changed ? `New Max Area Found: ${newMax}!` : `Max Area remains ${max}.`,
+            showWater: true,
+            waterHeight: minH
+        });
+        
+        max = newMax;
+
+        // Frame: Decision
+        frames.push({
+            l, r, max, cur: currentArea, line: 12,
+            msg: `Comparision: height[left] (${hLeft}) ${hLeft < hRight ? '<' : '>='} height[right] (${hRight})`
+        });
+
+        if (hLeft < hRight) {
+            frames.push({
+                l, r, max, cur: currentArea, line: 13,
+                msg: "Left height is smaller. Move Left pointer.",
+                moveLeft: true
+            });
+            l++;
+        } else {
+            frames.push({
+                l, r, max, cur: currentArea, line: 15,
+                msg: "Right height is smaller (or equal). Move Right pointer.",
+                moveRight: true
+            });
+            r--;
+        }
+    }
+
+    frames.push({
+        l, r, max, cur: 0, line: 18, msg: `Loop finished. Result: ${max}`,
+        finished: true
+    });
+}
+
+// --- Canvas Drawing ---
+
+function draw() {
+    // Resize canvas to display size
+    const dpr = window.devicePixelRatio || 1;
+    const rect = container.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+
+    if (heightArr.length === 0) return;
+
+    // Layout
+    const padding = 40;
+    const graphW = w - padding * 2;
+    const graphH = h - padding * 2;
+    
+    // Scale
+    const maxVal = Math.max(...heightArr, 1); // avoid /0
+    const barWidth = graphW / heightArr.length;
+    const spacing = Math.max(2, barWidth * 0.2);
+    const renderBarW = barWidth - spacing;
+    const scaleY = graphH / maxVal;
+
+    const frame = frames[currentFrame];
+    const leftIdx = frame ? frame.l : 0;
+    const rightIdx = frame ? frame.r : heightArr.length - 1;
+
+    // Draw Bars
+    heightArr.forEach((val, idx) => {
+        const x = padding + idx * barWidth + spacing / 2;
+        const barH = val * scaleY;
+        const y = h - padding - barH;
+
+        // Base Style
+        ctx.fillStyle = COL_BAR_BG;
+        
+        // Highlight active pointers
+        if (frame && idx === leftIdx) ctx.fillStyle = COL_LEFT;
+        if (frame && idx === rightIdx) ctx.fillStyle = COL_RIGHT;
+
+        // Inactive region highlighting (fade out bars outside current container scope)
+        // Optionally, could dim bars outside [l, r], but keeping them clear looks better.
+        
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(x, y, renderBarW, barH, [4, 4, 0, 0]) : ctx.fillRect(x, y, renderBarW, barH);
+        ctx.fill();
+
+        // Draw Indices
+        ctx.fillStyle = '#666';
+        ctx.font = '12px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText(idx, x + renderBarW/2, h - padding + 15);
+    });
+
+    // Draw Axis Line
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(padding, h - padding);
+    ctx.lineTo(w - padding, h - padding);
+    ctx.stroke();
+
+    if (!frame) return;
+
+    // Draw Water
+    if (frame.showWater && !frame.finished) {
+        const lX = padding + leftIdx * barWidth + spacing / 2;
+        const rX = padding + rightIdx * barWidth + spacing / 2 + renderBarW;
+        const waterH = frame.waterHeight * scaleY;
+        const waterY = h - padding - waterH;
+
+        ctx.fillStyle = COL_WATER;
+        ctx.fillRect(lX, waterY, rX - lX, waterH);
+        
+        ctx.strokeStyle = COL_WATER_STROKE;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(lX, waterY, rX - lX, waterH);
+        ctx.setLineDash([]);
+    }
+
+    // Draw Pointers (Labels above bars)
+    // Left Pointer
+    const lX = padding + leftIdx * barWidth + spacing / 2 + renderBarW/2;
+    const lVal = heightArr[leftIdx];
+    const lY = h - padding - (lVal * scaleY) - 10;
+    
+    drawXArrow(lX, h - padding + 25, COL_LEFT, "L");
+
+    // Right Pointer
+    const rX = padding + rightIdx * barWidth + spacing / 2 + renderBarW/2;
+    const rVal = heightArr[rightIdx];
+    const rY = h - padding - (rVal * scaleY) - 10;
+    
+    drawXArrow(rX, h - padding + 25, COL_RIGHT, "R");
+}
+
+function drawXArrow(x, y, color, label) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 5, y + 8);
+    ctx.lineTo(x + 5, y + 8);
+    ctx.fill();
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(label, x, y + 20);
+}
+
+
+// --- DOM Updating ---
+
+function updateUI() {
+    if (!frames.length) return;
+    const frame = frames[currentFrame];
+
+    // Highlight Code
+    document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+    const lineEl = document.getElementById(`line-${frame.line}`);
+    if (lineEl) {
+        lineEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        lineEl.classList.add('active');
+    }
+
+    // Update Stack Memory
+    elLeft.innerText = frame.l;
+    elRight.innerText = frame.r;
+    elCurrent.innerText = frame.cur;
+    elMax.innerText = frame.max;
+
+    // Changes highlight
+    document.getElementById('card-left').classList.toggle('changed', frame.moveLeft || false);
+    document.getElementById('card-right').classList.toggle('changed', frame.moveRight || false);
+    document.getElementById('card-max').classList.toggle('changed', frame.line === 10); // Update max line
+
+    // Update Heap/Calc Display
+    elHL.innerText = heightArr[frame.l];
+    elHR.innerText = heightArr[frame.r];
+    elStatus.innerText = frame.msg;
+
+    draw();
+}
+
+// --- Controls ---
+
+function resetViz() {
+    pause();
+    currentFrame = 0;
+    generateFrames();
+    updateUI();
+}
+
+function stepForward() {
+    if (currentFrame < frames.length - 1) {
+        currentFrame++;
+        updateUI();
+    } else {
+        pause();
+    }
+}
+
+function play() {
+    if (isPlaying) {
+        pause();
+    } else {
+        if (currentFrame === frames.length - 1) currentFrame = 0;
+        isPlaying = true;
+        elPlayBtn.innerHTML = "⏸ Pause";
+        loop();
+    } 
+}
+
+function pause() {
+    isPlaying = false;
+    clearTimeout(playInterval);
+    elPlayBtn.innerHTML = "▶ Play";
+}
+
+function loop() {
+    if (!isPlaying) return;
+    
+    stepForward();
+
+    if (currentFrame < frames.length - 1) {
+        const speed = 1000 - (elSlider.value * 9); // Map 1-100 to approx 1000ms - 100ms
+        playInterval = setTimeout(loop, speed);
+    } else {
+        pause();
+    }
+}
+
+// --- Event Listeners ---
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+    parseInput();
+});
+
+document.getElementById('playBtn').addEventListener('click', play);
+document.getElementById('stepBtn').addEventListener('click', () => {
+    pause();
+    stepForward();
+});
+
+elInput.addEventListener('change', parseInput);
+
+window.addEventListener('resize', () => {
+    draw();
+});
+
+// Init
+parseInput();
+
+</script>
+</body>
+</html>

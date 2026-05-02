@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5efe5;
+            --bg-layer: radial-gradient(circle at top left, rgba(183, 131, 73, 0.24), transparent 30%), radial-gradient(circle at top right, rgba(39, 88, 117, 0.18), transparent 28%), linear-gradient(180deg, #f8f3eb 0%, #f2ebdf 48%, #efe6d9 100%);
+            --surface: rgba(255, 250, 244, 0.8);
+            --surface-strong: #fffdf8;
+            --surface-soft: rgba(255, 255, 255, 0.6);
+            --border: rgba(73, 52, 31, 0.12);
+            --border-strong: rgba(73, 52, 31, 0.18);
+            --text: #1f2933;
+            --text-muted: #5e6b75;
+            --heading: #14232f;
+            --accent: #9c5f1d;
+            --accent-deep: #7a4510;
+            --accent-soft: rgba(156, 95, 29, 0.12);
+            --secondary: #20485e;
+            --secondary-soft: rgba(32, 72, 94, 0.12);
+            --easy: #1f9d55;
+            --easy-soft: rgba(31, 157, 85, 0.12);
+            --medium: #d17b0f;
+            --medium-soft: rgba(209, 123, 15, 0.12);
+            --hard: #cf3f3f;
+            --hard-soft: rgba(207, 63, 63, 0.12);
+            --shadow-lg: 0 28px 60px rgba(71, 48, 28, 0.12);
+            --shadow-md: 0 12px 30px rgba(71, 48, 28, 0.08);
+            --radius-xl: 32px;
+            --radius-lg: 24px;
+            --radius-md: 18px;
+            --radius-sm: 14px;
+            --font-display: "Space Grotesk", sans-serif;
+            --font-body: "Manrope", sans-serif;
+        }
+
+        html, body {
+            min-height: 100%;
+            font-family: var(--font-body);
+            background: var(--bg);
+            background-image: var(--bg-layer);
+            color: var(--text);
+        }
+
+        body {
+            padding: 28px 16px 40px;
+        }
+
+        button, input {
+            font: inherit;
+        }
+
+        .app-shell {
+            width: min(1180px, 100%);
+            margin: 0 auto;
+            display: grid;
+            gap: 22px;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 32px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            background: linear-gradient(135deg, rgba(255, 251, 246, 0.9), rgba(251, 245, 237, 0.82));
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(14px);
+        }
+
+        .hero::before,
+        .hero::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            pointer-events: none;
+        }
+
+        .hero::before {
+            width: 280px;
+            height: 280px;
+            right: -120px;
+            top: -120px;
+            background: radial-gradient(circle, rgba(156, 95, 29, 0.22), transparent 70%);
+        }
+
+        .hero::after {
+            width: 220px;
+            height: 220px;
+            left: -80px;
+            bottom: -120px;
+            background: radial-gradient(circle, rgba(32, 72, 94, 0.18), transparent 70%);
+        }
+
+        .hero-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-start;
+            position: relative;
+            z-index: 1;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--surface-soft);
+            border: 1px solid rgba(73, 52, 31, 0.08);
+            color: var(--secondary);
+            font-size: 0.84rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .eyebrow::before {
+            content: "";
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--accent), var(--secondary));
+        }
+
+        .hero h1 {
+            max-width: 700px;
+            font-family: var(--font-display);
+            font-size: clamp(2.2rem, 5vw, 4.4rem);
+            line-height: 0.98;
+            letter-spacing: -0.06em;
+            color: var(--heading);
+        }
+
+        .hero p {
+            max-width: 620px;
+            margin-top: 16px;
+            font-size: 1.03rem;
+            line-height: 1.75;
+            color: var(--text-muted);
+        }
+
+        .hero-stats {
+            display: grid;
+            gap: 12px;
+            min-width: 240px;
+        }
+
+        .stat-card {
+            padding: 18px 18px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.62);
+            border: 1px solid rgba(73, 52, 31, 0.08);
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            margin-top: 6px;
+            font-family: var(--font-display);
+            font-size: 2rem;
+            line-height: 1;
+            color: var(--heading);
+        }
+
+        .stat-meta {
+            margin-top: 6px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .controls {
+            display: grid;
+            gap: 18px;
+            padding: 22px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(14px);
+        }
+
+        .control-row {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-wrap {
+            position: relative;
+            flex: 1 1 280px;
+        }
+
+        .search-wrap svg {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+        }
+
+        #search-input {
+            width: 100%;
+            padding: 16px 16px 16px 48px;
+            border-radius: 18px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.75);
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        #search-input:focus {
+            border-color: rgba(32, 72, 94, 0.35);
+            box-shadow: 0 0 0 4px rgba(32, 72, 94, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-chip {
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.74);
+            color: var(--text);
+            padding: 10px 16px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 0.92rem;
+            font-weight: 700;
+            transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .filter-chip:hover {
+            transform: translateY(-1px);
+            border-color: rgba(32, 72, 94, 0.28);
+        }
+
+        .filter-chip.active {
+            background: linear-gradient(135deg, var(--secondary), #2b617e);
+            border-color: transparent;
+            color: #fff;
+            box-shadow: 0 12px 24px rgba(32, 72, 94, 0.2);
+        }
+
+        .results-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .results-meta strong {
+            color: var(--heading);
+        }
+
+        .dashboard {
+            display: grid;
+            gap: 18px;
+        }
+
+        .category-section {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            background: var(--surface);
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 24px 24px 18px;
+            border-bottom: 1px solid rgba(73, 52, 31, 0.08);
+        }
+
+        .category-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .category-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(32, 72, 94, 0.1), rgba(156, 95, 29, 0.16));
+            color: var(--secondary);
+            flex-shrink: 0;
+        }
+
+        .category-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .category-title {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            letter-spacing: -0.04em;
+            color: var(--heading);
+        }
+
+        .category-subtitle {
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }
+
+        .category-count {
+            padding: 9px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(73, 52, 31, 0.08);
+            color: var(--heading);
+            font-weight: 800;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .problem-list {
+            display: grid;
+        }
+
+        .problem-row {
+            width: 100%;
+            border: 0;
+            border-top: 1px solid rgba(73, 52, 31, 0.08);
+            background: transparent;
+            padding: 18px 24px;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 16px;
+            align-items: center;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .problem-row:first-child {
+            border-top: 0;
+        }
+
+        .problem-row:hover {
+            background: rgba(255, 255, 255, 0.56);
+        }
+
+        .problem-row:focus-visible {
+            outline: 3px solid rgba(32, 72, 94, 0.2);
+            outline-offset: -3px;
+        }
+
+        .problem-index {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(247, 238, 228, 0.92));
+            border: 1px solid rgba(73, 52, 31, 0.08);
+            font-family: var(--font-display);
+            font-size: 1rem;
+            color: var(--accent-deep);
+            flex-shrink: 0;
+        }
+
+        .problem-main {
+            min-width: 0;
+        }
+
+        .problem-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--heading);
+            line-height: 1.4;
+        }
+
+        .problem-meta {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .meta-pill {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid rgba(73, 52, 31, 0.08);
+            font-weight: 700;
+        }
+
+        .difficulty-badge {
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+
+        .difficulty-easy {
+            color: var(--easy);
+            background: var(--easy-soft);
+        }
+
+        .difficulty-medium {
+            color: var(--medium);
+            background: var(--medium-soft);
+        }
+
+        .difficulty-hard {
+            color: var(--hard);
+            background: var(--hard-soft);
+        }
+
+        .problem-arrow {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .problem-row:hover .problem-arrow {
+            transform: translateX(4px);
+            color: var(--secondary);
+        }
+
+        .empty-state {
+            padding: 48px 24px;
+            border-radius: var(--radius-lg);
+            border: 1px dashed rgba(73, 52, 31, 0.2);
+            background: rgba(255, 255, 255, 0.45);
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-family: var(--font-display);
+            color: var(--heading);
+            font-size: 1.4rem;
+            letter-spacing: -0.04em;
+            margin-bottom: 10px;
+        }
+
+        #viewer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(15, 23, 32, 0.76);
+            padding: 18px;
+            backdrop-filter: blur(8px);
+        }
+
+        #viewer.open {
+            display: block;
+        }
+
+        .viewer-shell {
+            height: 100%;
+            border-radius: 28px;
+            overflow: hidden;
+            background: #fffdf9;
+            box-shadow: 0 30px 90px rgba(0, 0, 0, 0.25);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .viewer-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(73, 52, 31, 0.08);
+            background: linear-gradient(135deg, #fffaf3, #f6eee1);
+        }
+
+        .back-btn {
+            border: 1px solid rgba(73, 52, 31, 0.12);
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--heading);
+            padding: 10px 16px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 800;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(32, 72, 94, 0.3);
+        }
+
+        .viewer-title-wrap {
+            min-width: 0;
+        }
+
+        .viewer-title {
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            color: var(--heading);
+            letter-spacing: -0.03em;
+        }
+
+        .viewer-caption {
+            margin-top: 4px;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .viewer-badges {
+            margin-left: auto;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .viewer-frame {
+            flex: 1;
+            min-height: 0;
+            background: #fff;
+        }
+
+        .viewer-frame iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        @media (max-width: 860px) {
+            body {
+                padding: 18px 12px 24px;
+            }
+
+            .hero {
+                padding: 24px;
+            }
+
+            .hero-top {
+                flex-direction: column;
+            }
+
+            .hero-stats {
+                width: 100%;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+
+            .problem-row {
+                grid-template-columns: auto minmax(0, 1fr);
+            }
+
+            .problem-side {
+                grid-column: 1 / -1;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .viewer-header {
+                flex-wrap: wrap;
+            }
+
+            .viewer-badges {
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .controls,
+            .category-header,
+            .problem-row {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+
+            .hero h1 {
+                font-size: 2.35rem;
+            }
+
+            .category-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .problem-index {
+                width: 40px;
+                height: 40px;
+            }
+
+            #viewer {
+                padding: 10px;
+            }
+
+            .viewer-shell {
+                border-radius: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="app-shell">
+        <section class="hero">
+            <div class="hero-top">
+                <div>
+                    <span class="eyebrow">DSA dashboard</span>
+                    <h1>Dry Run Visualizer - Top 150 Problems</h1>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Problems</div>
+                        <div class="stat-value" id="total-problems">0</div>
+                        <div class="stat-meta">Interactive visualizations ready to open</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Categories</div>
+                        <div class="stat-value" id="total-categories">0</div>
+                        <div class="stat-meta">Grouped by concept for quicker revision</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="controls">
+            <div class="control-row">
+                <label class="search-wrap" for="search-input">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Zm9 3-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    <input id="search-input" type="search" placeholder="Search by problem name, category, or number">
+                </label>
+                <div class="filter-group" id="difficulty-filters"></div>
+            </div>
+            <div class="results-meta">
+                <span><strong id="visible-count">0</strong> items visible</span>
+                <span id="results-summary">All problems are shown</span>
+            </div>
+        </section>
+
+        <section id="dashboard" class="dashboard"></section>
+    </main>
+
+    <div id="viewer" aria-hidden="true">
+        <div class="viewer-shell">
+            <div class="viewer-header">
+                <button class="back-btn" type="button" onclick="closeViewer()">← Back to dashboard</button>
+                <div class="viewer-title-wrap">
+                    <div class="viewer-title" id="viewer-title"></div>
+                    <div class="viewer-caption" id="viewer-caption">Problem visualization</div>
+                </div>
+                <div class="viewer-badges" id="viewer-badges"></div>
+            </div>
+            <div class="viewer-frame">
+                <iframe id="viewer-iframe" title="Problem visualization"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script src="problems.js"></script>
+    <script>
+        const elDashboard = document.getElementById('dashboard');
+        const elViewer = document.getElementById('viewer');
+        const elViewerTitle = document.getElementById('viewer-title');
+        const elViewerCaption = document.getElementById('viewer-caption');
+        const elViewerBadges = document.getElementById('viewer-badges');
+        const elViewerIframe = document.getElementById('viewer-iframe');
+        const elSearchInput = document.getElementById('search-input');
+        const elDifficultyFilters = document.getElementById('difficulty-filters');
+        const elVisibleCount = document.getElementById('visible-count');
+        const elResultsSummary = document.getElementById('results-summary');
+        const elTotalProblems = document.getElementById('total-problems');
+        const elTotalCategories = document.getElementById('total-categories');
+
+        const state = {
+            search: '',
+            difficulty: 'All'
+        };
+
+        const difficultyOrder = ['All', 'Easy', 'Medium', 'Hard'];
+
+        const categoryIcons = {
+            'Array': '<svg viewBox="0 0 40 40" fill="none"><rect x="5" y="10" width="8" height="20" rx="2" fill="#20485e"/><rect x="16" y="6" width="8" height="28" rx="2" fill="#9c5f1d"/><rect x="27" y="14" width="8" height="12" rx="2" fill="#20485e" opacity="0.85"/></svg>',
+            'Two Pointers': '<svg viewBox="0 0 40 40" fill="none"><circle cx="12" cy="20" r="6" stroke="#20485e" stroke-width="2.5"/><circle cx="28" cy="20" r="6" stroke="#9c5f1d" stroke-width="2.5"/><path d="M18 20h4" stroke="#64748b" stroke-width="2" stroke-linecap="round"/></svg>',
+            'Linked List': '<svg viewBox="0 0 40 40" fill="none"><circle cx="8" cy="20" r="4.5" fill="#20485e"/><circle cx="20" cy="20" r="4.5" fill="#9c5f1d"/><circle cx="32" cy="20" r="4.5" fill="#20485e" opacity="0.8"/><path d="M12.5 20h3M24.5 20h3" stroke="#64748b" stroke-width="2" stroke-linecap="round"/></svg>',
+            'Tree': '<svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="9" r="4.5" fill="#20485e"/><circle cx="10" cy="27" r="4.5" fill="#9c5f1d"/><circle cx="30" cy="27" r="4.5" fill="#9c5f1d"/><path d="M17 13.5 12 23M23 13.5 28 23" stroke="#64748b" stroke-width="2" stroke-linecap="round"/></svg>',
+            'Stack': '<svg viewBox="0 0 40 40" fill="none"><rect x="8" y="24" width="24" height="6" rx="2" fill="#20485e"/><rect x="8" y="16" width="24" height="6" rx="2" fill="#9c5f1d"/><rect x="8" y="8" width="24" height="6" rx="2" fill="#20485e" opacity="0.65"/></svg>',
+            'Queue': '<svg viewBox="0 0 40 40" fill="none"><rect x="4" y="14" width="8" height="12" rx="2" fill="#20485e"/><rect x="16" y="14" width="8" height="12" rx="2" fill="#9c5f1d"/><rect x="28" y="14" width="8" height="12" rx="2" fill="#20485e" opacity="0.65"/></svg>',
+            'Graph': '<svg viewBox="0 0 40 40" fill="none"><circle cx="10" cy="10" r="4" fill="#20485e"/><circle cx="30" cy="12" r="4" fill="#9c5f1d"/><circle cx="12" cy="30" r="4" fill="#9c5f1d"/><circle cx="30" cy="28" r="4" fill="#20485e"/><path d="M13 12 27 13.5M14 28 26.5 27M11 14v12M29 16v8" stroke="#64748b" stroke-width="1.8" stroke-linecap="round"/></svg>',
+            'String': '<svg viewBox="0 0 40 40" fill="none"><path d="M7 27c1.8-6 6-10 13-10 4.5 0 7.2-1.5 10-5" stroke="#20485e" stroke-width="3" stroke-linecap="round"/><path d="M10 12h7M23 28h7" stroke="#9c5f1d" stroke-width="3" stroke-linecap="round"/></svg>',
+            'Dynamic Programming': '<svg viewBox="0 0 40 40" fill="none"><rect x="5" y="5" width="11" height="11" rx="3" fill="#20485e" opacity="0.28"/><rect x="24" y="5" width="11" height="11" rx="3" fill="#9c5f1d" opacity="0.3"/><rect x="5" y="24" width="11" height="11" rx="3" fill="#9c5f1d" opacity="0.3"/><rect x="24" y="24" width="11" height="11" rx="3" fill="#20485e"/><path d="M16 10h8M10 16v8M30 16v8M16 30h8" stroke="#64748b" stroke-width="1.8" stroke-linecap="round"/></svg>',
+            'Sorting': '<svg viewBox="0 0 40 40" fill="none"><rect x="5" y="26" width="6" height="9" rx="2" fill="#20485e"/><rect x="14" y="21" width="6" height="14" rx="2" fill="#9c5f1d"/><rect x="23" y="14" width="6" height="21" rx="2" fill="#20485e" opacity="0.8"/><rect x="32" y="8" width="3" height="27" rx="1.5" fill="#9c5f1d"/></svg>'
+        };
+
+        const defaultIcon = '<svg viewBox="0 0 40 40" fill="none"><rect x="7" y="7" width="26" height="26" rx="8" stroke="#20485e" stroke-width="2.5"/><circle cx="20" cy="20" r="5.5" fill="#9c5f1d" opacity="0.72"/></svg>';
+
+        function getIcon(category) {
+            return categoryIcons[category] || defaultIcon;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function difficultyClass(difficulty) {
+            return 'difficulty-' + difficulty.toLowerCase();
+        }
+
+        function getFilteredProblems() {
+            const query = state.search.trim().toLowerCase();
+
+            return problems.filter(problem => {
+                const matchesDifficulty = state.difficulty === 'All' || problem.difficulty === state.difficulty;
+                const haystack = [problem.title, problem.category, '#' + problem.id].join(' ').toLowerCase();
+                const matchesQuery = !query || haystack.includes(query);
+                return matchesDifficulty && matchesQuery;
+            });
+        }
+
+        function renderDifficultyFilters() {
+            elDifficultyFilters.innerHTML = difficultyOrder.map(level => {
+                const isActive = state.difficulty === level ? 'active' : '';
+                return '<button class="filter-chip ' + isActive + '" type="button" data-difficulty="' + level + '">' + level + '</button>';
+            }).join('');
+
+            Array.from(elDifficultyFilters.querySelectorAll('[data-difficulty]')).forEach(button => {
+                button.addEventListener('click', () => {
+                    state.difficulty = button.dataset.difficulty;
+                    renderDashboard();
+                });
+            });
+        }
+
+        function renderDashboard() {
+            const filteredProblems = getFilteredProblems();
+            const groups = {};
+            const order = [];
+
+            filteredProblems.forEach(problem => {
+                if (!groups[problem.category]) {
+                    groups[problem.category] = [];
+                    order.push(problem.category);
+                }
+                groups[problem.category].push(problem);
+            });
+
+            elTotalProblems.textContent = problems.length;
+            elTotalCategories.textContent = new Set(problems.map(problem => problem.category)).size;
+            elVisibleCount.textContent = filteredProblems.length;
+            elResultsSummary.textContent = state.search || state.difficulty !== 'All'
+                ? 'Filtered by ' + (state.difficulty !== 'All' ? state.difficulty : 'all difficulties') + (state.search ? ' and "' + state.search.trim() + '"' : '')
+                : 'All problems are shown';
+
+            renderDifficultyFilters();
+
+            if (!filteredProblems.length) {
+                elDashboard.innerHTML = '<div class="empty-state"><h3>No matching problems</h3><p>Try a different search term or switch the difficulty filter to see more visualizations.</p></div>';
+                return;
+            }
+
+            elDashboard.innerHTML = order.map(category => {
+                const items = groups[category].map((problem, index) => {
+                    return '' +
+                        '<button class="problem-row" type="button" data-problem-id="' + problem.id + '">' +
+                            '<span class="problem-index">' + String(index + 1).padStart(2, '0') + '</span>' +
+                            '<div class="problem-main">' +
+                                '<div class="problem-title">' + escapeHtml(problem.title) + '</div>' +
+                                '<div class="problem-meta">' +
+                                    '<span class="meta-pill">Problem #' + escapeHtml(problem.id) + '</span>' +
+                                    '<span>' + escapeHtml(problem.category) + ' pattern</span>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="problem-side">' +
+                                '<span class="difficulty-badge ' + difficultyClass(problem.difficulty) + '">' + escapeHtml(problem.difficulty) + '</span>' +
+                                '<span class="problem-arrow" aria-hidden="true">→</span>' +
+                            '</div>' +
+                        '</button>';
+                }).join('');
+
+                return '' +
+                    '<section class="category-section">' +
+                        '<div class="category-header">' +
+                            '<div class="category-title-wrap">' +
+                                '<div class="category-icon">' + getIcon(category) + '</div>' +
+                                '<div>' +
+                                    '<h2 class="category-title">' + escapeHtml(category) + '</h2>' +
+                                    '<p class="category-subtitle">Focused visual walkthroughs for ' + escapeHtml(category.toLowerCase()) + ' concepts.</p>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="category-count">' + groups[category].length + ' item' + (groups[category].length > 1 ? 's' : '') + '</div>' +
+                        '</div>' +
+                        '<div class="problem-list">' + items + '</div>' +
+                    '</section>';
+            }).join('');
+
+            Array.from(elDashboard.querySelectorAll('[data-problem-id]')).forEach(button => {
+                button.addEventListener('click', () => {
+                    const selected = problems.find(problem => String(problem.id) === button.dataset.problemId);
+                    if (selected) openViewer(selected);
+                });
+            });
+        }
+
+        function openViewer(problem) {
+            elViewerTitle.textContent = problem.title;
+            elViewerCaption.textContent = problem.category + ' • Problem #' + problem.id;
+            elViewerBadges.innerHTML =
+                '<span class="difficulty-badge ' + difficultyClass(problem.difficulty) + '">' + escapeHtml(problem.difficulty) + '</span>' +
+                '<span class="meta-pill">' + escapeHtml(problem.category) + '</span>';
+            elViewerIframe.src = problem.file;
+            elViewer.classList.add('open');
+            elViewer.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeViewer() {
+            elViewer.classList.remove('open');
+            elViewer.setAttribute('aria-hidden', 'true');
+            elViewerIframe.src = '';
+            document.body.style.overflow = '';
+        }
+
+        elSearchInput.addEventListener('input', event => {
+            state.search = event.target.value;
+            renderDashboard();
+        });
+
+        elViewer.addEventListener('click', event => {
+            if (event.target === elViewer) closeViewer();
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && elViewer.classList.contains('open')) {
+                closeViewer();
+            }
+        });
+
+        renderDashboard();
+    </script>
+</body>
+</html>

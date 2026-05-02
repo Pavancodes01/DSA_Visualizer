@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Daily Temperatures – Monotonic Stack Dry Run</title>
+<style>
+:root {
+  --bg:          #1e1e1e;
+  --panel-bg:    #252526;
+  --border:      #3e3e42;
+  --text:        #d4d4d4;
+  --text-dim:    #858585;
+  --accent:      #007acc;
+  --active-line: #37373d;
+  --green:       #4ec9b0;
+  --yellow:      #dcdcaa;
+  --orange:      #ce9178;
+  --purple:      #c586c0;
+  --blue:        #569cd6;
+  --lt-blue:     #9cdcfe;
+  --red:         #f44747;
+  --pointer-alt: #50fa7b;
+  --font-mono:   'Consolas','Monaco','Courier New',monospace;
+  --font-ui:     -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* HEADER */
+header{background:var(--panel-bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;flex-shrink:0;}
+.title{font-size:1rem;font-weight:700;color:var(--yellow);white-space:nowrap;}
+.subtitle{font-size:.75rem;color:var(--text-dim);}
+.input-group{display:flex;align-items:center;gap:6px;}
+.input-group label{font-size:.8rem;color:var(--text-dim);}
+.input-group input{background:#3c3c3c;border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-family:var(--font-mono);font-size:.8rem;width:180px;}
+.controls{display:flex;align-items:center;gap:6px;margin-left:auto;}
+button{background:#3c3c3c;border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:4px;cursor:pointer;font-size:.8rem;transition:background .15s;}
+button:hover{background:#505050;}
+button:disabled{opacity:.35;cursor:not-allowed;}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.speed-wrap{display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--text-dim);}
+.speed-wrap input{width:70px;cursor:pointer;}
+.step-counter{font-size:.8rem;color:var(--text-dim);white-space:nowrap;}
+
+/* MAIN */
+main{display:grid;grid-template-columns:390px 1fr 270px;flex:1;overflow:hidden;}
+.panel{background:var(--panel-bg);border-right:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;}
+.panel-title{padding:7px 12px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);border-bottom:1px solid var(--border);flex-shrink:0;}
+
+/* CODE */
+#codePanel{overflow-y:auto;padding:8px 0;}
+.code-line{display:flex;align-items:center;padding:1px 0;transition:background .15s;border-left:3px solid transparent;}
+.code-line.active{background:var(--active-line);border-left:3px solid var(--accent);}
+.gutter{min-width:36px;text-align:right;padding-right:10px;color:var(--text-dim);font-size:.78rem;font-family:var(--font-mono);user-select:none;flex-shrink:0;}
+.code-text{font-family:var(--font-mono);font-size:.8rem;white-space:pre;}
+.keyword{color:var(--blue);}
+.type{color:var(--blue);}
+.var{color:var(--lt-blue);}
+.num{color:#b5cea8;}
+.comment{color:#6a9955;}
+.control{color:var(--purple);}
+.str{color:var(--orange);}
+.method{color:var(--yellow);}
+.cls{color:var(--green);}
+
+/* VIZ PANEL */
+#vizPanel{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+#vizArea{flex:1;position:relative;padding:18px 20px;overflow:hidden;}
+
+/* Temperature Array */
+.arr-section-label{font-size:.72rem;color:var(--text-dim);margin-bottom:28px;text-transform:uppercase;letter-spacing:.06em;}
+.arr-row{position:relative;height:80px;margin-bottom:10px;}
+.arr-node{width:56px;height:56px;border:2px solid var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.05rem;position:absolute;top:0;transition:background .3s,border-color .3s;background:var(--panel-bg);font-family:var(--font-mono);}
+.arr-node.current{border-color:var(--red);background:rgba(244,71,71,.18);}
+.arr-node.in-stack{border-color:var(--accent);background:rgba(0,122,204,.15);}
+.arr-node.popped{border-color:var(--orange);background:rgba(206,145,120,.25);}
+.arr-node.answered{border-color:var(--green);background:rgba(78,201,176,.12);}
+.arr-idx{position:absolute;bottom:-20px;width:56px;text-align:center;font-size:.7rem;color:var(--text-dim);font-family:var(--font-mono);}
+.arr-val-label{position:absolute;top:-22px;width:56px;text-align:center;font-size:.7rem;color:var(--text-dim);font-family:var(--font-mono);}
+
+/* Stack viz */
+.stack-section{margin-top:14px;}
+.stack-section-label{font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.stack-visual{display:flex;align-items:flex-end;gap:4px;height:70px;border-bottom:2px solid var(--border);padding-bottom:4px;}
+.stack-cell{width:54px;height:54px;border:2px solid var(--accent);border-radius:6px;background:rgba(0,122,204,.18);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:.78rem;transition:all .3s;}
+.stack-cell .sc-idx{font-size:.65rem;color:var(--lt-blue);}
+.stack-cell .sc-val{font-weight:700;color:var(--yellow);}
+.stack-cell.top-cell{border-color:var(--orange);background:rgba(206,145,120,.2);}
+.stack-empty{color:var(--text-dim);font-size:.8rem;align-self:center;}
+
+/* Result row */
+.result-row{position:relative;height:70px;margin-top:16px;}
+.result-node{width:56px;height:48px;border:2px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1rem;position:absolute;top:0;font-family:var(--font-mono);color:var(--text-dim);transition:all .3s;}
+.result-node.filled{border-color:var(--green);color:var(--green);background:rgba(78,201,176,.1);}
+.result-label{position:absolute;top:-20px;width:56px;text-align:center;font-size:.7rem;color:var(--text-dim);font-family:var(--font-mono);}
+
+/* STATUS BAR */
+#statusBar{background:#1a1a1a;border-top:1px solid var(--border);padding:10px 16px;font-size:.82rem;color:var(--green);line-height:1.4;flex-shrink:0;min-height:48px;}
+
+/* VARIABLES PANEL */
+#varPanel{overflow-y:auto;padding:10px 12px;}
+.mem-section{margin-bottom:16px;}
+.mem-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:8px;}
+.var-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;}
+.var-name{font-family:var(--font-mono);font-size:.8rem;color:var(--lt-blue);}
+.var-val{font-family:var(--font-mono);font-size:.8rem;color:var(--yellow);min-width:60px;text-align:right;border-radius:3px;padding:1px 4px;}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(0,122,204,.35)}}
+.var-val.changed{animation:flash .5s ease;}
+.stack-inline{font-size:.75rem;color:var(--orange);word-break:break-all;}
+
+/* Legend */
+.legend{margin-top:12px;padding:8px;background:#1a1a1a;border-radius:6px;border:1px solid var(--border);}
+.legend-title{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:6px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:.73rem;margin-bottom:4px;}
+.legend-dot{width:12px;height:12px;border-radius:3px;border:2px solid;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="title">🌡️ Daily Temperatures</div>
+    <div class="subtitle">Monotonic Stack • LeetCode 739</div>
+  </div>
+  <div class="input-group">
+    <label>Input:</label>
+    <input type="text" id="inputArr" value="30,40,35,50"/>
+    <button class="primary" onclick="loadInput()">Load</button>
+  </div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap">
+      <span>Speed</span>
+      <input type="range" id="speed" min="1" max="100" value="45"/>
+    </div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+
+<main>
+  <!-- CODE PANEL -->
+  <div class="panel">
+    <div class="panel-title">Java Code</div>
+    <div id="codePanel"></div>
+  </div>
+
+  <!-- VIZ PANEL -->
+  <div class="panel" id="vizPanel">
+    <div class="panel-title">Visualization</div>
+    <div id="vizArea"></div>
+    <div id="statusBar">→ Ready. Click Load or Next to start.</div>
+  </div>
+
+  <!-- VARIABLES PANEL -->
+  <div class="panel">
+    <div class="panel-title">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Stack Frame</div>
+        <div class="var-row"><span class="var-name">n</span><span class="var-val" id="var-n">—</span></div>
+        <div class="var-row"><span class="var-name">i</span><span class="var-val" id="var-i">—</span></div>
+        <div class="var-row"><span class="var-name">index (popped)</span><span class="var-val" id="var-index">—</span></div>
+        <div class="var-row"><span class="var-name">temp[i]</span><span class="var-val" id="var-tempi">—</span></div>
+        <div class="var-row"><span class="var-name">temp[peek]</span><span class="var-val" id="var-peek">—</span></div>
+      </div>
+      <div class="mem-section">
+        <div class="mem-label">Heap</div>
+        <div class="var-row"><span class="var-name">stack (indices)</span></div>
+        <div class="var-row"><div class="stack-inline" id="var-stack">[]</div></div>
+        <div class="var-row" style="margin-top:8px"><span class="var-name">result[ ]</span></div>
+        <div class="var-row"><div class="stack-inline" id="var-result">[]</div></div>
+      </div>
+      <div class="legend">
+        <div class="legend-title">Legend</div>
+        <div class="legend-item"><div class="legend-dot" style="border-color:var(--red);background:rgba(244,71,71,.18)"></div><span>Current i</span></div>
+        <div class="legend-item"><div class="legend-dot" style="border-color:var(--accent);background:rgba(0,122,204,.15)"></div><span>In stack</span></div>
+        <div class="legend-item"><div class="legend-dot" style="border-color:var(--orange);background:rgba(206,145,120,.25)"></div><span>Being popped</span></div>
+        <div class="legend-item"><div class="legend-dot" style="border-color:var(--green);background:rgba(78,201,176,.12)"></div><span>Answered</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ─── CODE LINES ─────────────────────────────────────────────────────────────
+const CODE = [
+  { text: `<span class="keyword">public static</span> <span class="type">int</span>[] <span class="method">dailyTemperatures</span>(<span class="type">int</span>[] <span class="var">temp</span>) {` },
+  { text: `  <span class="type">int</span> <span class="var">n</span> = <span class="var">temp</span>.<span class="var">length</span>;` },
+  { text: `  <span class="type">int</span>[] <span class="var">result</span> = <span class="keyword">new</span> <span class="type">int</span>[<span class="var">n</span>];` },
+  { text: `  <span class="cls">Stack</span>&lt;<span class="cls">Integer</span>&gt; <span class="var">stack</span> = <span class="keyword">new</span> <span class="cls">Stack</span>&lt;&gt;();` },
+  { text: `  <span class="control">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">n</span>; <span class="var">i</span>++) {` },
+  { text: `    <span class="control">while</span> (!<span class="var">stack</span>.<span class="method">isEmpty</span>() &&` },
+  { text: `           <span class="var">temp</span>[<span class="var">stack</span>.<span class="method">peek</span>()] &lt; <span class="var">temp</span>[<span class="var">i</span>]) {` },
+  { text: `      <span class="type">int</span> <span class="var">index</span> = <span class="var">stack</span>.<span class="method">pop</span>();` },
+  { text: `      <span class="var">result</span>[<span class="var">index</span>] = <span class="var">i</span> - <span class="var">index</span>;` },
+  { text: `    }` },
+  { text: `    <span class="var">stack</span>.<span class="method">push</span>(<span class="var">i</span>);` },
+  { text: `  }` },
+  { text: `  <span class="control">return</span> <span class="var">result</span>;` },
+  { text: `}` },
+];
+
+function buildCode() {
+  const panel = document.getElementById('codePanel');
+  panel.innerHTML = CODE.map((l, idx) =>
+    `<div class="code-line" id="line-${idx+1}">
+      <span class="gutter">${idx+1}</span>
+      <span class="code-text">${l.text}</span>
+    </div>`
+  ).join('');
+}
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let steps = [];
+let currentStep = 0;
+let isPlaying = false;
+let timer = null;
+let tempArr = [];
+
+// ─── ALGORITHM SIMULATOR ────────────────────────────────────────────────────
+function generateSteps(temp) {
+  const history = [];
+  const n = temp.length;
+  const result = new Array(n).fill(0);
+  const stack = [];
+
+  const snap = (line, desc, extra = {}) => {
+    history.push({
+      line,
+      desc,
+      n,
+      i: extra.i ?? null,
+      indexPopped: extra.indexPopped ?? null,
+      tempI: extra.tempI ?? null,
+      peekVal: extra.peekVal ?? null,
+      stack: [...stack],
+      result: [...result],
+      highlightArr: extra.highlightArr ?? [],
+      poppedArr: extra.poppedArr ?? [],
+      answeredArr: extra.answeredArr ?? result.map((v,k) => v > 0 ? k : -1).filter(k => k >= 0),
+      ...extra,
+    });
+  };
+
+  snap(2, `Initialize n = ${n} (length of temp array)`, { i: null });
+  snap(3, `Initialize result[] = [${result.join(', ')}] — all zeros`, { i: null });
+  snap(4, `Initialize empty Stack to hold indices of "waiting" days`, { i: null });
+
+  for (let i = 0; i < n; i++) {
+    snap(5, `for loop: i = ${i}, checking i < n (${i} < ${n}) → true, enter loop`, { i, highlightArr: [i] });
+
+    // while condition check
+    let condLine = 6;
+    if (stack.length === 0) {
+      snap(condLine, `while: stack is empty → skip while loop, go to push`, { i, highlightArr: [i] });
+    } else {
+      while (stack.length > 0 && temp[stack[stack.length - 1]] < temp[i]) {
+        const peek = stack[stack.length - 1];
+        snap(condLine, `while: stack not empty ✓ AND temp[${peek}]=${temp[peek]} < temp[${i}]=${temp[i]} → true! Pop index ${peek}`, {
+          i, peekVal: temp[peek], tempI: temp[i],
+          highlightArr: [i], poppedArr: [peek]
+        });
+        snap(8, `int index = stack.pop() → index = ${peek} (we found a warmer day for index ${peek})`, {
+          i, indexPopped: peek, tempI: temp[i], peekVal: temp[peek],
+          highlightArr: [i], poppedArr: [peek]
+        });
+        const idx = stack.pop();
+        result[idx] = i - idx;
+        snap(9, `result[${idx}] = i - index = ${i} - ${idx} = ${result[idx]}  (${result[idx]} day(s) until warmer temp)`, {
+          i, indexPopped: idx, tempI: temp[i],
+          highlightArr: [i],
+          answeredArr: result.map((v,k) => v > 0 ? k : -1).filter(k => k >= 0)
+        });
+
+        // re-check while condition
+        if (stack.length === 0) {
+          snap(condLine, `while: stack is now empty → exit while loop`, { i, highlightArr: [i] });
+        } else {
+          const nextPeek = stack[stack.length - 1];
+          if (temp[nextPeek] >= temp[i]) {
+            snap(condLine, `while: temp[${nextPeek}]=${temp[nextPeek]} is NOT less than temp[${i}]=${temp[i]} → exit while`, {
+              i, peekVal: temp[nextPeek], tempI: temp[i], highlightArr: [i]
+            });
+          }
+        }
+      }
+    }
+
+    stack.push(i);
+    snap(11, `stack.push(${i}) → push current index ${i} (temp=${temp[i]}°) onto stack — waiting for a warmer day`, {
+      i, tempI: temp[i], highlightArr: [i],
+      answeredArr: result.map((v,k) => v > 0 ? k : -1).filter(k => k >= 0)
+    });
+  }
+
+  // after loop - remaining in stack
+  snap(12, `for loop ends: i = ${n}, ${n} < ${n} is false → exit loop. Remaining stack indices ${JSON.stringify(stack)} stay as result[index]=0 (no warmer day found)`, {
+    i: null, answeredArr: result.map((v,k) => v > 0 ? k : -1).filter(k => k >= 0)
+  });
+  snap(13, `return result = [${result.join(', ')}]`, {
+    i: null, answeredArr: result.map((v,k) => v > 0 ? k : -1).filter(k => k >= 0)
+  });
+
+  return history;
+}
+
+// ─── DOM BUILDER ─────────────────────────────────────────────────────────────
+function buildVizDOM(temp) {
+  const n = temp.length;
+  const gap = 68;
+  const startX = 20;
+  const vizArea = document.getElementById('vizArea');
+
+  let html = `<div class="arr-section-label">temp[ ] — Temperature Array</div>`;
+  html += `<div class="arr-row" id="arrRow" style="width:${startX + n*gap + 20}px">`;
+  for (let i = 0; i < n; i++) {
+    html += `<div class="arr-node" id="node-${i}" style="left:${startX + i*gap}px">
+      <span class="arr-val-label">temp[${i}]</span>
+      ${temp[i]}°
+      <span class="arr-idx">${i}</span>
+    </div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="stack-section">
+    <div class="stack-section-label">Stack (stores indices waiting for a warmer day) → top is rightmost</div>
+    <div class="stack-visual" id="stackViz"><span class="stack-empty">empty</span></div>
+  </div>`;
+
+  html += `<div style="margin-top:16px">
+    <div class="arr-section-label">result[ ] — Days until warmer</div>
+    <div class="result-row" style="width:${startX + n*gap + 20}px" id="resultRow">`;
+  for (let i = 0; i < n; i++) {
+    html += `<div class="result-node" id="res-${i}" style="left:${startX + i*gap}px">
+      <span class="result-label">res[${i}]</span>
+      0
+    </div>`;
+  }
+  html += `</div></div>`;
+
+  vizArea.innerHTML = html;
+}
+
+// ─── RENDERER ─────────────────────────────────────────────────────────────────
+function applyStep(s) {
+  // highlight code
+  document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+  const lineEl = document.getElementById(`line-${s.line}`);
+  if (lineEl) {
+    lineEl.classList.add('active');
+    lineEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+  // status bar
+  document.getElementById('statusBar').textContent = `→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent = `Step ${currentStep+1} / ${steps.length}`;
+
+  // update array nodes
+  const n = tempArr.length;
+  for (let k = 0; k < n; k++) {
+    const node = document.getElementById(`node-${k}`);
+    if (!node) continue;
+    node.className = 'arr-node';
+    if (s.poppedArr && s.poppedArr.includes(k)) {
+      node.classList.add('popped');
+    } else if (s.answeredArr && s.answeredArr.includes(k)) {
+      node.classList.add('answered');
+    } else if (s.stack && s.stack.includes(k)) {
+      node.classList.add('in-stack');
+    }
+    if (s.i === k) node.classList.add('current');
+  }
+
+  // update result nodes
+  if (s.result) {
+    for (let k = 0; k < n; k++) {
+      const rnode = document.getElementById(`res-${k}`);
+      if (!rnode) continue;
+      const val = s.result[k];
+      rnode.textContent = '';
+      const lbl = document.createElement('span');
+      lbl.className = 'result-label';
+      lbl.textContent = `res[${k}]`;
+      rnode.appendChild(lbl);
+      rnode.appendChild(document.createTextNode(val));
+      rnode.className = 'result-node' + (val > 0 ? ' filled' : '');
+    }
+  }
+
+  // update stack viz
+  const sv = document.getElementById('stackViz');
+  if (sv) {
+    if (!s.stack || s.stack.length === 0) {
+      sv.innerHTML = '<span class="stack-empty">empty</span>';
+    } else {
+      sv.innerHTML = s.stack.map((idx, pos) => {
+        const isTop = pos === s.stack.length - 1;
+        return `<div class="stack-cell${isTop ? ' top-cell' : ''}">
+          <span class="sc-idx">idx:${idx}</span>
+          <span class="sc-val">${tempArr[idx]}°</span>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // update variable panel
+  updateVar('var-n', s.n);
+  updateVar('var-i', s.i === null ? '—' : s.i);
+  updateVar('var-index', s.indexPopped === null ? '—' : s.indexPopped);
+  updateVar('var-tempi', s.tempI === null ? '—' : s.tempI + '°');
+  updateVar('var-peek', s.peekVal === null ? '—' : s.peekVal + '°');
+  updateVar('var-stack', s.stack ? JSON.stringify(s.stack) : '[]');
+  updateVar('var-result', s.result ? JSON.stringify(s.result) : '[]');
+}
+
+function updateVar(id, newVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const val = (newVal === null || newVal === undefined) ? '—' : String(newVal);
+  if (el.textContent !== val) {
+    el.textContent = val;
+    el.classList.remove('changed');
+    void el.offsetWidth;
+    el.classList.add('changed');
+  }
+}
+
+// ─── CONTROLS ────────────────────────────────────────────────────────────────
+function nextStep() {
+  if (currentStep < steps.length - 1) { currentStep++; applyStep(steps[currentStep]); updateBtns(); }
+  else stopPlay();
+}
+function prevStep() {
+  if (currentStep > 0) { currentStep--; applyStep(steps[currentStep]); updateBtns(); }
+}
+function togglePlay() {
+  isPlaying ? stopPlay() : startPlay();
+}
+function startPlay() {
+  if (currentStep === steps.length - 1) currentStep = 0;
+  isPlaying = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  tick();
+}
+function stopPlay() {
+  isPlaying = false;
+  clearTimeout(timer);
+  document.getElementById('btnPlay').textContent = '▶ Play';
+}
+function tick() {
+  if (!isPlaying) return;
+  if (currentStep < steps.length - 1) {
+    nextStep();
+    const delay = 2100 - parseInt(document.getElementById('speed').value) * 20;
+    timer = setTimeout(tick, delay);
+  } else stopPlay();
+}
+function updateBtns() {
+  document.getElementById('btnPrev').disabled = currentStep === 0;
+  document.getElementById('btnNext').disabled = currentStep === steps.length - 1;
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+function loadInput() {
+  stopPlay();
+  const raw = document.getElementById('inputArr').value;
+  tempArr = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  if (tempArr.length === 0) { alert('Please enter at least one temperature.'); return; }
+  steps = generateSteps(tempArr);
+  currentStep = 0;
+  buildVizDOM(tempArr);
+  applyStep(steps[0]);
+  updateBtns();
+}
+
+window.addEventListener('load', () => { buildCode(); loadInput(); });
+</script>
+</body>
+</html>

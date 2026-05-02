@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Two Sum – HashMap Visualizer</title>
+<style>
+:root {
+  --bg:          #1e1e1e;
+  --panel-bg:    #252526;
+  --border:      #3e3e42;
+  --text:        #d4d4d4;
+  --text-dim:    #858585;
+  --accent:      #007acc;
+  --active-line: #37373d;
+  --green:       #4ec9b0;
+  --yellow:      #dcdcaa;
+  --orange:      #ce9178;
+  --purple:      #c586c0;
+  --blue:        #569cd6;
+  --lt-blue:     #9cdcfe;
+  --red:         #f44747;
+  --pointer-alt: #50fa7b;
+  --font-mono:   'Consolas','Monaco','Courier New',monospace;
+  --font-ui:     -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* HEADER */
+header{background:var(--panel-bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0}
+.title{font-size:1rem;font-weight:700;color:var(--accent);white-space:nowrap}
+.badge{background:#1a3a5c;color:var(--lt-blue);font-size:.7rem;padding:2px 8px;border-radius:10px;border:1px solid var(--accent)}
+.input-group{display:flex;align-items:center;gap:6px;font-size:.82rem}
+.input-group label{color:var(--text-dim)}
+.input-group input{background:#2d2d2d;border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-family:var(--font-mono);font-size:.82rem;width:160px}
+.input-group input:focus{outline:none;border-color:var(--accent)}
+.target-group{display:flex;align-items:center;gap:6px;font-size:.82rem}
+.target-group label{color:var(--text-dim)}
+.target-group input{background:#2d2d2d;border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-family:var(--font-mono);font-size:.82rem;width:60px}
+button{background:#0e639c;border:none;color:#fff;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:.82rem;font-family:var(--font-ui)}
+button:hover{background:#1177bb}
+button:disabled{background:#3a3a3a;color:var(--text-dim);cursor:default}
+.controls{display:flex;align-items:center;gap:8px;margin-left:4px}
+.speed-wrap{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--text-dim)}
+.speed-wrap input{width:80px;accent-color:var(--accent)}
+.step-counter{margin-left:auto;font-size:.8rem;color:var(--text-dim);white-space:nowrap}
+
+/* MAIN */
+main{flex:1;display:grid;grid-template-columns:390px 1fr 280px;overflow:hidden}
+
+/* CODE PANEL */
+.code-panel{background:var(--panel-bg);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;display:flex;flex-direction:column;gap:0}
+.code-line{display:flex;padding:1px 0;font-family:var(--font-mono);font-size:.8rem;line-height:1.7;border-left:3px solid transparent;transition:background .2s,border-color .2s}
+.code-line.active{background:var(--active-line);border-left-color:var(--accent)}
+.gutter{width:36px;text-align:right;padding-right:12px;color:var(--text-dim);user-select:none;flex-shrink:0}
+.code-text{padding-right:12px}
+.keyword{color:var(--purple)}
+.type{color:var(--blue)}
+.var{color:var(--lt-blue)}
+.num{color:#b5cea8}
+.comment{color:#6a9955;font-style:italic}
+.control{color:var(--purple)}
+.str{color:var(--orange)}
+.method{color:var(--yellow)}
+.ann{color:var(--green)}
+
+/* VIZ PANEL */
+.viz-panel{display:flex;flex-direction:column;overflow:hidden}
+.viz-area{flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:24px}
+
+/* Array Viz */
+.section-title{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px}
+.array-wrapper{position:relative;height:110px;display:flex;align-items:center}
+.arr-cells{display:flex;gap:8px;position:relative}
+.arr-node{width:56px;height:56px;border:2px solid var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;font-family:var(--font-mono);background:var(--panel-bg);position:relative;transition:border-color .3s,background .3s;flex-direction:column;gap:2px}
+.arr-node .val{font-size:1.1rem;font-weight:700}
+.arr-node .idx{font-size:.65rem;color:var(--text-dim)}
+.arr-node.current{border-color:var(--red);background:rgba(244,71,71,0.15)}
+.arr-node.found{border-color:var(--green);background:rgba(78,201,176,0.2)}
+.ptr-label{position:absolute;top:-34px;left:50%;transform:translateX(-50%);font-size:.75rem;font-weight:700;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:2px}
+.ptr-label .arrow{font-size:1rem}
+.ptr-i{color:var(--red)}
+
+/* HashMap Viz */
+.hashmap-grid{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+.hm-entry{background:#1a2a3a;border:1.5px solid var(--accent);border-radius:6px;padding:6px 12px;font-family:var(--font-mono);font-size:.82rem;display:flex;align-items:center;gap:6px;transition:all .3s;animation:fadeIn .3s ease}
+.hm-entry.highlight{border-color:var(--green);background:#1a3a2a;animation:pulse .5s ease}
+.hm-entry .hm-key{color:var(--orange)}
+.hm-entry .sep{color:var(--text-dim)}
+.hm-entry .hm-val{color:var(--green)}
+.hm-entry .hm-comment{color:var(--text-dim);font-size:.72rem}
+@keyframes fadeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes pulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 10px var(--green)}}
+
+/* Difference box */
+.diff-box{display:inline-flex;align-items:center;gap:10px;background:#1e2a3a;border:1.5px solid var(--accent);border-radius:8px;padding:8px 16px;font-family:var(--font-mono);font-size:.88rem;transition:all .3s}
+.diff-box .diff-label{color:var(--text-dim);font-size:.75rem}
+.diff-box .diff-val{color:var(--yellow);font-weight:700;font-size:1.1rem}
+.found-box{background:#1a3a1a;border-color:var(--green)}
+.notfound-box{border-color:var(--border)}
+
+/* Result Banner */
+.result-banner{background:#1a3a2a;border:2px solid var(--green);border-radius:8px;padding:10px 18px;font-family:var(--font-mono);font-size:1rem;color:var(--green);display:none;font-weight:700;text-align:center}
+.result-banner.show{display:block;animation:fadeIn .4s ease}
+
+/* STATUS BAR */
+.status-bar{background:#1a1a1a;border-top:1px solid var(--border);padding:10px 16px;font-size:.83rem;color:var(--text);font-family:var(--font-mono);min-height:42px;line-height:1.4;flex-shrink:0}
+.status-bar .step-n{color:var(--accent);font-weight:700}
+.status-bar .msg{color:var(--yellow)}
+
+/* VARIABLES PANEL */
+.vars-panel{background:var(--panel-bg);border-left:1px solid var(--border);overflow-y:auto;padding:14px}
+.vars-panel h3{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.mem-section{margin-bottom:18px}
+.mem-label{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;padding:2px 6px;background:#1a1a1a;border-radius:3px;display:inline-block}
+.var-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding:4px 6px;border-radius:4px}
+.var-name{font-family:var(--font-mono);font-size:.8rem;color:var(--lt-blue)}
+.var-val{font-family:var(--font-mono);font-size:.85rem;color:var(--yellow);font-weight:700;padding:2px 6px;border-radius:3px;background:#1a1a1a;min-width:50px;text-align:center;transition:background .2s}
+@keyframes flash{0%,100%{background:#1a1a1a}50%{background:rgba(0,122,204,0.35)}}
+.var-val.changed{animation:flash .5s ease}
+.hm-snapshot{font-family:var(--font-mono);font-size:.75rem;margin-top:4px}
+.hm-row{display:flex;gap:4px;margin-bottom:4px;align-items:center}
+.hm-k{color:var(--orange)}
+.hm-v{color:var(--green)}
+.hm-arrow{color:var(--text-dim)}
+.complexity{background:#1a1a1a;border-radius:6px;padding:10px;margin-top:8px}
+.complexity .cx-row{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.78rem;margin-bottom:4px}
+.cx-label{color:var(--text-dim)}
+.cx-val{color:var(--green)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="title">Two Sum</span>
+  <span class="badge">HashMap O(n)</span>
+  <div class="input-group">
+    <label>Array:</label>
+    <input type="text" id="inputArr" value="2,7,11,15"/>
+  </div>
+  <div class="target-group">
+    <label>Target:</label>
+    <input type="number" id="inputTarget" value="9"/>
+  </div>
+  <button onclick="loadInput()">▶ Load</button>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap">
+      <span>Speed</span>
+      <input type="range" id="speed" min="1" max="100" value="50"/>
+    </div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+
+<main>
+  <!-- CODE PANEL -->
+  <div class="code-panel" id="codePanel">
+    <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="type">int</span><span class="keyword">[]</span> <span class="method">twoSum</span>(<span class="type">int</span><span class="keyword">[]</span> <span class="var">nums</span>, <span class="type">int</span> <span class="var">target</span>) {</span></div>
+    <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">&nbsp;&nbsp;<span class="comment">// Create a HashMap: value → index</span></span></div>
+    <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text">&nbsp;&nbsp;<span class="type">Map</span>&lt;<span class="type">Integer</span>,<span class="type">Integer</span>&gt; <span class="var">map</span> = <span class="keyword">new</span> <span class="type">HashMap</span>&lt;&gt;();</span></div>
+    <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">&nbsp;&nbsp;<span class="control">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">nums</span>.length; <span class="var">i</span>++) {</span></div>
+    <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text">&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// What number do we need to find?</span></span></div>
+    <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">&nbsp;&nbsp;&nbsp;&nbsp;<span class="type">int</span> <span class="var">diff</span> = <span class="var">target</span> - <span class="var">nums</span>[<span class="var">i</span>];</span></div>
+    <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text">&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Is that number already in the map?</span></span></div>
+    <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text">&nbsp;&nbsp;&nbsp;&nbsp;<span class="control">if</span> (<span class="var">map</span>.<span class="method">containsKey</span>(<span class="var">diff</span>)) {</span></div>
+    <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="control">return new</span> <span class="type">int</span>[]{ <span class="var">map</span>.<span class="method">get</span>(<span class="var">diff</span>), <span class="var">i</span> };</span></div>
+    <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">&nbsp;&nbsp;&nbsp;&nbsp;}</span></div>
+    <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment">// Store current number and its index</span></span></div>
+    <div class="code-line" id="line-12"><span class="gutter">12</span><span class="code-text">&nbsp;&nbsp;&nbsp;&nbsp;<span class="var">map</span>.<span class="method">put</span>(<span class="var">nums</span>[<span class="var">i</span>], <span class="var">i</span>);</span></div>
+    <div class="code-line" id="line-13"><span class="gutter">13</span><span class="code-text">&nbsp;&nbsp;}</span></div>
+    <div class="code-line" id="line-14"><span class="gutter">14</span><span class="code-text">&nbsp;&nbsp;<span class="control">return</span> <span class="var">null</span>; <span class="comment">// no solution</span></span></div>
+    <div class="code-line" id="line-15"><span class="gutter">15</span><span class="code-text">}</span></div>
+  </div>
+
+  <!-- VIZ PANEL -->
+  <div class="viz-panel">
+    <div class="viz-area">
+      <!-- Array -->
+      <div>
+        <div class="section-title">📦 Input Array</div>
+        <div class="array-wrapper">
+          <div class="arr-cells" id="arrCells"></div>
+        </div>
+      </div>
+
+      <!-- Difference -->
+      <div>
+        <div class="section-title">🔍 Current Check</div>
+        <div id="diffArea">
+          <div class="diff-box notfound-box" id="diffBox">
+            <div>
+              <div class="diff-label">diff = target - nums[i]</div>
+              <div class="diff-val" id="diffVal">—</div>
+            </div>
+            <div style="font-size:1.4rem" id="diffIcon">🤔</div>
+            <div>
+              <div class="diff-label">in map?</div>
+              <div class="diff-val" id="diffFound" style="font-size:.9rem">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HashMap -->
+      <div>
+        <div class="section-title">🗺️ HashMap  <span style="color:var(--text-dim);font-size:.7rem;text-transform:none;letter-spacing:0">(value → index)</span></div>
+        <div class="hashmap-grid" id="hmGrid">
+          <span style="color:var(--text-dim);font-size:.82rem;font-style:italic">Empty — nothing stored yet</span>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="result-banner" id="resultBanner"></div>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <span class="step-n">→</span> <span class="msg">Press Play or Next to start the dry run!</span>
+    </div>
+  </div>
+
+  <!-- VARIABLES PANEL -->
+  <div class="vars-panel">
+    <h3>🧠 Memory Tracker</h3>
+
+    <div class="mem-section">
+      <div class="mem-label">STACK (primitives)</div>
+      <div class="var-row"><span class="var-name">target</span><span class="var-val" id="var-target">—</span></div>
+      <div class="var-row"><span class="var-name">i</span><span class="var-val" id="var-i">—</span></div>
+      <div class="var-row"><span class="var-name">nums[i]</span><span class="var-val" id="var-numsi">—</span></div>
+      <div class="var-row"><span class="var-name">diff</span><span class="var-val" id="var-diff">—</span></div>
+      <div class="var-row"><span class="var-name">result</span><span class="var-val" id="var-result" style="color:var(--green)">—</span></div>
+    </div>
+
+    <div class="mem-section">
+      <div class="mem-label">HEAP (map)</div>
+      <div class="hm-snapshot" id="hmSnapshot">
+        <span style="color:var(--text-dim)">{ }</span>
+      </div>
+    </div>
+
+    <div class="complexity">
+      <div style="font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">Complexity</div>
+      <div class="cx-row"><span class="cx-label">Time</span><span class="cx-val">O(n)</span></div>
+      <div class="cx-row"><span class="cx-label">Space</span><span class="cx-val">O(n)</span></div>
+      <div class="cx-row"><span class="cx-label">map.get</span><span class="cx-val">O(1)</span></div>
+      <div class="cx-row"><span class="cx-label">map.put</span><span class="cx-val">O(1)</span></div>
+    </div>
+  </div>
+</main>
+
+<script>
+let steps = [];
+let currentStep = 0;
+let isPlaying = false;
+let timer = null;
+let nums = [];
+let target = 9;
+
+// ── GENERATE STEPS ──────────────────────────────────────
+function generateSteps(arr, tgt) {
+  const history = [];
+  const map = {};
+
+  const snap = (line, desc, extra = {}) => {
+    history.push({
+      line, desc,
+      i: extra.i !== undefined ? extra.i : -1,
+      diff: extra.diff !== undefined ? extra.diff : null,
+      mapState: {...map},
+      currentArr: [...arr],
+      highlightIdx: extra.highlightIdx !== undefined ? extra.highlightIdx : -1,
+      foundIdx: extra.foundIdx !== undefined ? extra.foundIdx : -1,
+      foundI: extra.foundI !== undefined ? extra.foundI : -1,
+      result: extra.result || null,
+      diffInMap: extra.diffInMap !== undefined ? extra.diffInMap : null,
+      justAdded: extra.justAdded !== undefined ? extra.justAdded : null,
+    });
+  };
+
+  snap(3, `Initialize empty HashMap. It will store: number → its index`, {});
+  snap(4, `Start loop. i = 0, checking condition: 0 < ${arr.length} → true, enter loop`, {i: 0});
+
+  for (let i = 0; i < arr.length; i++) {
+    snap(6, `i=${i} → nums[${i}] = ${arr[i]}. Calculate diff = target - nums[i] = ${tgt} - ${arr[i]} = ${tgt - arr[i]}`, {i, diff: tgt - arr[i], highlightIdx: i});
+    
+    const diff = tgt - arr[i];
+    const found = map.hasOwnProperty(diff);
+
+    snap(8, `Check: is ${diff} already in the map? → ${found ? `YES! Found at index ${map[diff]}` : 'NO, not found yet'}`, {i, diff, highlightIdx: i, diffInMap: found});
+
+    if (found) {
+      snap(9, `🎉 FOUND! map.get(${diff}) = ${map[diff]}. Return [${map[diff]}, ${i}] — these two indices sum to target ${tgt}!`, {i, diff, highlightIdx: i, foundIdx: map[diff], foundI: i, result: [map[diff], i], diffInMap: true});
+      return history;
+    }
+
+    map[arr[i]] = i;
+    snap(12, `diff ${diff} NOT in map. Store nums[${i}]=${arr[i]} with its index ${i} → map.put(${arr[i]}, ${i})`, {i, diff, highlightIdx: i, mapState: {...map}, justAdded: arr[i]});
+
+    if (i + 1 < arr.length) {
+      snap(4, `Loop continues. i++ → i = ${i+1}. Check: ${i+1} < ${arr.length} → true`, {i: i+1});
+    } else {
+      snap(13, `Loop ends. i++ → i = ${i+1}. Check: ${i+1} < ${arr.length} → false, exit loop`, {i: i+1});
+      snap(14, `No valid pair found in array. Return null.`, {result: 'null'});
+    }
+  }
+
+  return history;
+}
+
+// ── BUILD DOM ────────────────────────────────────────────
+function buildArrayDOM(arr) {
+  const container = document.getElementById('arrCells');
+  container.innerHTML = '';
+  arr.forEach((v, idx) => {
+    const node = document.createElement('div');
+    node.className = 'arr-node';
+    node.id = `node-${idx}`;
+    node.innerHTML = `<span class="val">${v}</span><span class="idx">[${idx}]</span>`;
+    container.appendChild(node);
+  });
+}
+
+// ── APPLY STEP ───────────────────────────────────────────
+function applyStep(s) {
+  // 1. Highlight code line
+  document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+  const lineEl = document.getElementById(`line-${s.line}`);
+  if (lineEl) { lineEl.classList.add('active'); lineEl.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+
+  // 2. Status bar
+  document.getElementById('statusBar').innerHTML =
+    `<span class="step-n">→ Step ${currentStep+1}/${steps.length}:</span> <span class="msg">${s.desc}</span>`;
+  document.getElementById('stepCounter').textContent = `Step ${currentStep+1} / ${steps.length}`;
+
+  // 3. Array nodes
+  nums.forEach((_, idx) => {
+    const el = document.getElementById(`node-${idx}`);
+    if (!el) return;
+    el.className = 'arr-node';
+    if (idx === s.highlightIdx) el.classList.add('current');
+    if (idx === s.foundIdx || idx === s.foundI) el.classList.add('found');
+    // Pointer label
+    const existing = el.querySelector('.ptr-label');
+    if (existing) existing.remove();
+    if (idx === s.i && s.i >= 0 && s.i < nums.length) {
+      const ptr = document.createElement('div');
+      ptr.className = 'ptr-label ptr-i';
+      ptr.innerHTML = `<span class="arrow">▼</span><span>i=${s.i}</span>`;
+      el.appendChild(ptr);
+    }
+  });
+
+  // 4. Diff box
+  const diffBox = document.getElementById('diffBox');
+  const diffVal = document.getElementById('diffVal');
+  const diffFound = document.getElementById('diffFound');
+  const diffIcon = document.getElementById('diffIcon');
+  if (s.diff !== null) {
+    diffVal.textContent = s.diff;
+    if (s.diffInMap === true) {
+      diffFound.textContent = '✅ YES';
+      diffFound.style.color = 'var(--green)';
+      diffIcon.textContent = '🎯';
+      diffBox.className = 'diff-box found-box';
+    } else if (s.diffInMap === false) {
+      diffFound.textContent = '❌ NO';
+      diffFound.style.color = 'var(--red)';
+      diffIcon.textContent = '🔍';
+      diffBox.className = 'diff-box notfound-box';
+    } else {
+      diffFound.textContent = '...';
+      diffIcon.textContent = '🤔';
+      diffBox.className = 'diff-box notfound-box';
+    }
+  } else {
+    diffVal.textContent = '—';
+    diffFound.textContent = '—';
+    diffFound.style.color = 'var(--yellow)';
+    diffIcon.textContent = '🤔';
+    diffBox.className = 'diff-box notfound-box';
+  }
+
+  // 5. HashMap grid
+  const hmGrid = document.getElementById('hmGrid');
+  const mapEntries = Object.entries(s.mapState);
+  if (mapEntries.length === 0) {
+    hmGrid.innerHTML = '<span style="color:var(--text-dim);font-size:.82rem;font-style:italic">Empty — nothing stored yet</span>';
+  } else {
+    hmGrid.innerHTML = '';
+    mapEntries.forEach(([k, v]) => {
+      const entry = document.createElement('div');
+      const isJust = s.justAdded !== null && parseInt(k) === s.justAdded;
+      entry.className = 'hm-entry' + (isJust ? ' highlight' : '');
+      entry.innerHTML = `<span class="hm-key">${k}</span><span class="sep">→</span><span class="hm-val">idx:${v}</span>`;
+      hmGrid.appendChild(entry);
+    });
+  }
+
+  // 6. HashMap snapshot in vars panel
+  const hmSnapshot = document.getElementById('hmSnapshot');
+  if (mapEntries.length === 0) {
+    hmSnapshot.innerHTML = '<span style="color:var(--text-dim)">{ }</span>';
+  } else {
+    hmSnapshot.innerHTML = mapEntries.map(([k,v]) =>
+      `<div class="hm-row"><span class="hm-k">${k}</span><span class="hm-arrow"> → </span><span class="hm-v">idx ${v}</span></div>`
+    ).join('');
+  }
+
+  // 7. Variable panel
+  updateVar('var-target', target);
+  updateVar('var-i', s.i >= 0 && s.i < nums.length ? s.i : '—');
+  updateVar('var-numsi', s.i >= 0 && s.i < nums.length ? nums[s.i] : '—');
+  updateVar('var-diff', s.diff !== null ? s.diff : '—');
+  const resultEl = document.getElementById('var-result');
+  if (s.result && s.result !== 'null') {
+    const prev = resultEl.textContent;
+    const next = `[${s.result[0]}, ${s.result[1]}]`;
+    if (prev !== next) {
+      resultEl.textContent = next;
+      resultEl.classList.remove('changed'); void resultEl.offsetWidth; resultEl.classList.add('changed');
+    }
+  } else {
+    updateVar('var-result', s.result === 'null' ? 'null' : '—');
+  }
+
+  // 8. Result banner
+  const banner = document.getElementById('resultBanner');
+  if (s.result && s.result !== 'null') {
+    banner.textContent = `🎉 Answer: indices [${s.result[0]}, ${s.result[1]}]  →  nums[${s.result[0]}]=${nums[s.result[0]]} + nums[${s.result[1]}]=${nums[s.result[1]]} = ${target}`;
+    banner.classList.add('show');
+  } else if (s.result === 'null') {
+    banner.textContent = `⚠️ No two numbers add up to target ${target}. Returning null.`;
+    banner.style.borderColor = 'var(--red)';
+    banner.style.background = '#2a1a1a';
+    banner.style.color = 'var(--red)';
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+
+function updateVar(id, newVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const next = (newVal === null || newVal === undefined) ? '—' : String(newVal);
+  if (el.textContent !== next) {
+    el.textContent = next;
+    el.classList.remove('changed'); void el.offsetWidth; el.classList.add('changed');
+  }
+}
+
+// ── CONTROLS ─────────────────────────────────────────────
+function nextStep() {
+  if (currentStep < steps.length - 1) { currentStep++; applyStep(steps[currentStep]); updateBtns(); }
+  else stopPlay();
+}
+function prevStep() {
+  if (currentStep > 0) { currentStep--; applyStep(steps[currentStep]); updateBtns(); }
+}
+function togglePlay() { isPlaying ? stopPlay() : startPlay(); }
+function startPlay() {
+  if (currentStep === steps.length - 1) currentStep = 0;
+  isPlaying = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  tick();
+}
+function stopPlay() {
+  isPlaying = false;
+  clearTimeout(timer);
+  document.getElementById('btnPlay').textContent = '▶ Play';
+}
+function tick() {
+  if (!isPlaying) return;
+  if (currentStep < steps.length - 1) {
+    nextStep();
+    const delay = 2100 - parseInt(document.getElementById('speed').value) * 20;
+    timer = setTimeout(tick, delay);
+  } else stopPlay();
+}
+function updateBtns() {
+  document.getElementById('btnPrev').disabled = currentStep === 0;
+  document.getElementById('btnNext').disabled = currentStep === steps.length - 1;
+}
+
+// ── LOAD ─────────────────────────────────────────────────
+function loadInput() {
+  stopPlay();
+  const raw = document.getElementById('inputArr').value;
+  const parsed = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  if (parsed.length < 2) { alert('Please enter at least 2 numbers.'); return; }
+  nums = parsed;
+  target = parseInt(document.getElementById('inputTarget').value) || 9;
+
+  steps = generateSteps(nums, target);
+  currentStep = 0;
+  buildArrayDOM(nums);
+  document.getElementById('resultBanner').classList.remove('show');
+  document.getElementById('resultBanner').style = '';
+  applyStep(steps[0]);
+  updateBtns();
+}
+
+window.addEventListener('load', loadInput);
+</script>
+</body>
+</html>
