@@ -69,5 +69,12 @@ const problems = [
         category: "Stack",
         difficulty: "Easy",
         file: "problems/ValidParentheses.html"
+    },
+    {
+        id: 10,
+        title:"3 Sum",
+        category: "Two Pointers",
+        difficulty: "Medium",
+        file: "problems/ThreeSum.html"
     }
 ];

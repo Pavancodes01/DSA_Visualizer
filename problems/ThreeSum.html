@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>3Sum – Interactive Dry Run</title>
+<style>
+:root {
+  --bg:          #1e1e1e;
+  --panel-bg:    #252526;
+  --border:      #3e3e42;
+  --text:        #d4d4d4;
+  --text-dim:    #858585;
+  --accent:      #007acc;
+  --active-line: #37373d;
+  --green:       #4ec9b0;
+  --yellow:      #dcdcaa;
+  --orange:      #ce9178;
+  --purple:      #c586c0;
+  --blue:        #569cd6;
+  --lt-blue:     #9cdcfe;
+  --red:         #f44747;
+  --pointer-alt: #50fa7b;
+  --font-mono:   'Consolas','Monaco','Courier New',monospace;
+  --font-ui:     -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── HEADER ── */
+header{
+  background:var(--panel-bg);
+  border-bottom:1px solid var(--border);
+  padding:10px 16px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:10px;
+}
+.title{font-size:1rem;font-weight:700;color:var(--yellow);white-space:nowrap;margin-right:6px;}
+.subtitle{font-size:.72rem;color:var(--text-dim);}
+.input-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.input-group label{font-size:.78rem;color:var(--text-dim);}
+.input-group input{
+  background:#1e1e1e;border:1px solid var(--border);color:var(--text);
+  font-family:var(--font-mono);font-size:.8rem;padding:3px 8px;border-radius:4px;width:200px;
+}
+.btn{
+  background:var(--accent);color:#fff;border:none;padding:4px 12px;
+  border-radius:4px;cursor:pointer;font-size:.8rem;transition:opacity .2s;
+}
+.btn:hover{opacity:.85;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-ghost:hover{background:var(--active-line);}
+.controls{display:flex;align-items:center;gap:6px;}
+.speed-wrap{display:flex;align-items:center;gap:4px;font-size:.75rem;color:var(--text-dim);}
+.speed-wrap input{width:70px;accent-color:var(--accent);}
+.step-counter{margin-left:auto;font-size:.75rem;color:var(--text-dim);white-space:nowrap;}
+
+/* ── MAIN GRID ── */
+.main{display:grid;grid-template-columns:400px 1fr 270px;flex:1;overflow:hidden;}
+
+/* ── CODE PANEL ── */
+.code-panel{
+  background:var(--panel-bg);border-right:1px solid var(--border);
+  overflow-y:auto;padding:8px 0;
+}
+.code-panel-title{font-size:.68rem;color:var(--text-dim);padding:4px 12px 8px;text-transform:uppercase;letter-spacing:.06em;}
+.code-line{
+  display:flex;align-items:flex-start;padding:1px 8px;
+  font-family:var(--font-mono);font-size:.78rem;line-height:1.6;
+  border-left:3px solid transparent;cursor:default;
+  white-space:pre;
+}
+.code-line.active{
+  background:var(--active-line);border-left-color:var(--accent);
+}
+.gutter{width:26px;text-align:right;color:var(--text-dim);user-select:none;margin-right:10px;flex-shrink:0;}
+.code-text{flex:1;}
+.keyword{color:var(--purple);}
+.type{color:var(--blue);}
+.var{color:var(--lt-blue);}
+.num{color:#b5cea8;}
+.comment{color:#6a9955;font-style:italic;}
+.control{color:var(--purple);}
+.fn{color:var(--yellow);}
+.str{color:var(--orange);}
+.op{color:var(--text);}
+
+/* ── VIZ PANEL ── */
+.viz-panel{display:flex;flex-direction:column;overflow:hidden;}
+.viz-area{flex:1;padding:20px;overflow:auto;position:relative;}
+
+/* Array row */
+.array-section{margin-bottom:18px;}
+.array-label{font-size:.72rem;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;}
+.array-wrap{position:relative;height:100px;display:flex;align-items:center;}
+.arr-nodes-container{position:relative;display:flex;gap:6px;}
+.arr-node{
+  width:52px;height:52px;
+  border:2px solid var(--accent);
+  border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:700;font-size:1.1rem;
+  background:var(--panel-bg);
+  transition:background .3s,border-color .3s,transform .2s;
+  position:relative;
+  flex-shrink:0;
+}
+.arr-node .idx-label{font-size:.6rem;color:var(--text-dim);font-weight:400;margin-top:2px;}
+.arr-node.i-node   {border-color:var(--red);   background:rgba(244,71,71,.18);}
+.arr-node.lo-node  {border-color:var(--orange); background:rgba(206,145,120,.18);}
+.arr-node.hi-node  {border-color:var(--pointer-alt); background:rgba(80,250,123,.18);}
+.arr-node.triplet  {border-color:var(--yellow); background:rgba(220,220,170,.22); transform:translateY(-4px);}
+.arr-node.skip     {border-color:var(--text-dim);color:var(--text-dim);}
+.arr-node.sorted-ok{border-color:var(--green);background:rgba(78,201,176,.12);}
+
+/* pointer arrows */
+.ptr-arrow{
+  position:absolute;text-align:center;font-size:.7rem;font-weight:700;
+  pointer-events:none;transition:left .35s cubic-bezier(.25,.8,.25,1);
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+}
+.ptr-i   {color:var(--red);   top:-36px;}
+.ptr-lo  {color:var(--orange);}
+.ptr-hi  {color:var(--pointer-alt);}
+.ptr-bot {bottom:-38px;}
+
+/* triplet found banner */
+.triplet-banner{
+  background:rgba(78,201,176,.15);border:1px solid var(--green);
+  border-radius:8px;padding:10px 16px;font-size:.85rem;color:var(--green);
+  margin-bottom:14px;display:none;
+}
+.result-list{
+  background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;
+  padding:10px 16px;font-family:var(--font-mono);font-size:.82rem;
+  max-height:120px;overflow-y:auto;
+}
+.result-list-label{font-size:.7rem;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;}
+.result-item{color:var(--green);padding:2px 0;}
+.result-item.new{animation:flash-green .6s ease;}
+@keyframes flash-green{0%,100%{background:transparent}50%{background:rgba(78,201,176,.25)}}
+
+/* Sum visualizer */
+.sum-viz{
+  display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 14px;
+  background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;
+  font-family:var(--font-mono);font-size:.88rem;flex-wrap:wrap;
+}
+.sum-box{
+  padding:4px 10px;border-radius:4px;border:1px solid var(--border);
+  font-weight:700;min-width:36px;text-align:center;
+}
+.sum-box.i-box{border-color:var(--red);color:var(--red);background:rgba(244,71,71,.1);}
+.sum-box.lo-box{border-color:var(--orange);color:var(--orange);background:rgba(206,145,120,.1);}
+.sum-box.hi-box{border-color:var(--pointer-alt);color:var(--pointer-alt);background:rgba(80,250,123,.1);}
+.sum-box.sum-result{border-color:var(--accent);color:var(--lt-blue);background:rgba(0,122,204,.1);}
+.sum-op{color:var(--text-dim);}
+.sum-cmp{color:var(--yellow);font-size:.82rem;}
+
+/* status bar */
+.status-bar{
+  background:#1e1e1e;border-top:1px solid var(--border);
+  padding:8px 16px;font-size:.8rem;color:var(--green);
+  min-height:36px;white-space:normal;word-break:break-word;
+}
+
+/* ── VARIABLES PANEL ── */
+.var-panel{
+  background:var(--panel-bg);border-left:1px solid var(--border);
+  overflow-y:auto;padding:10px;
+}
+.mem-section{margin-bottom:16px;}
+.mem-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.var-row{display:flex;justify-content:space-between;align-items:center;padding:3px 4px;border-radius:3px;}
+.var-row:hover{background:var(--active-line);}
+.var-name{font-family:var(--font-mono);font-size:.78rem;color:var(--lt-blue);}
+.var-val{font-family:var(--font-mono);font-size:.78rem;color:var(--orange);font-weight:600;}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(0,122,204,.35)}}
+.var-val.changed{animation:flash .5s ease;}
+
+.heap-arr{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
+.heap-cell{
+  padding:2px 6px;border-radius:3px;border:1px solid var(--border);
+  font-family:var(--font-mono);font-size:.72rem;color:var(--text);
+}
+.heap-cell.hl-i{border-color:var(--red);color:var(--red);}
+.heap-cell.hl-lo{border-color:var(--orange);color:var(--orange);}
+.heap-cell.hl-hi{border-color:var(--pointer-alt);color:var(--pointer-alt);}
+
+.algo-note{
+  background:rgba(0,122,204,.08);border:1px solid rgba(0,122,204,.3);
+  border-radius:6px;padding:8px;font-size:.72rem;color:var(--text-dim);
+  line-height:1.5;margin-top:8px;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div>
+    <div class="title">⚡ 3Sum — LeetCode #15</div>
+    <div class="subtitle">Sort + Two Pointers | O(n²) Time · O(n) Space</div>
+  </div>
+  <div class="input-group">
+    <label>Input:</label>
+    <input type="text" id="inputArr" value="-1,0,1,2,-1,-4" />
+    <button class="btn" onclick="loadInput()">▶ Load</button>
+  </div>
+  <div class="controls">
+    <button class="btn btn-ghost" id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button class="btn" id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button class="btn btn-ghost" id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap">
+      <span>Speed</span>
+      <input type="range" id="speed" min="1" max="100" value="45" />
+    </div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- CODE PANEL -->
+  <div class="code-panel">
+    <div class="code-panel-title">Java Code</div>
+    <div id="codeLines"></div>
+  </div>
+
+  <!-- VIZ PANEL -->
+  <div class="viz-panel">
+    <div class="viz-area" id="vizArea">
+
+      <div class="triplet-banner" id="tripletBanner">🎉 Triplet Found!</div>
+
+      <div class="array-section">
+        <div class="array-label">Array (after sorting)</div>
+        <div class="array-wrap">
+          <div class="arr-nodes-container" id="arrNodes"></div>
+        </div>
+      </div>
+
+      <div class="sum-viz" id="sumViz" style="display:none">
+        <span class="sum-op">Sum:</span>
+        <span class="sum-box i-box" id="sv-i">?</span>
+        <span class="sum-op">+</span>
+        <span class="sum-box lo-box" id="sv-lo">?</span>
+        <span class="sum-op">+</span>
+        <span class="sum-box hi-box" id="sv-hi">?</span>
+        <span class="sum-op">=</span>
+        <span class="sum-box sum-result" id="sv-sum">?</span>
+        <span class="sum-cmp" id="sv-cmp"></span>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="result-list-label">Results so far</div>
+        <div class="result-list" id="resultList"><span style="color:var(--text-dim);font-size:.8rem;">None yet…</span></div>
+      </div>
+
+      <div class="algo-note" id="algoNote">
+        <b style="color:var(--yellow)">How 3Sum works:</b><br>
+        1. Sort the array<br>
+        2. Fix pointer <span style="color:var(--red)">i</span> (outer loop)<br>
+        3. Use two pointers <span style="color:var(--orange)">lo</span> and <span style="color:var(--pointer-alt)">hi</span> to find pairs that sum to <span style="color:var(--accent)">-nums[i]</span><br>
+        4. Skip duplicates to avoid repeated triplets
+      </div>
+    </div>
+    <div class="status-bar" id="statusBar">→ Load an array to begin.</div>
+  </div>
+
+  <!-- VARIABLES PANEL -->
+  <div class="var-panel">
+    <div class="mem-section">
+      <div class="mem-label">Stack (primitives)</div>
+      <div class="var-row"><span class="var-name">n</span><span class="var-val" id="var-n">—</span></div>
+      <div class="var-row"><span class="var-name">i</span><span class="var-val" id="var-i">—</span></div>
+      <div class="var-row"><span class="var-name">lo</span><span class="var-val" id="var-lo">—</span></div>
+      <div class="var-row"><span class="var-name">hi</span><span class="var-val" id="var-hi">—</span></div>
+      <div class="var-row"><span class="var-name">sum</span><span class="var-val" id="var-sum">—</span></div>
+      <div class="var-row"><span class="var-name">nums[i]</span><span class="var-val" id="var-numsi">—</span></div>
+      <div class="var-row"><span class="var-name">nums[lo]</span><span class="var-val" id="var-numslo">—</span></div>
+      <div class="var-row"><span class="var-name">nums[hi]</span><span class="var-val" id="var-numshi">—</span></div>
+    </div>
+    <div class="mem-section">
+      <div class="mem-label">Heap (objects)</div>
+      <div class="var-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+        <span class="var-name">nums[] (sorted)</span>
+        <div class="heap-arr" id="heap-arr"></div>
+      </div>
+      <div class="var-row" style="margin-top:8px;flex-direction:column;align-items:flex-start;gap:4px;">
+        <span class="var-name">result list</span>
+        <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--green);" id="heap-res">[]</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CODE DEFINITION ─────────────────────────────────────────────────────────
+const CODE = [
+  { t: `<span class="keyword">public</span> <span class="type">List</span><span class="op">&lt;</span><span class="type">List</span><span class="op">&lt;</span><span class="type">Integer</span><span class="op">&gt;&gt;</span> <span class="fn">threeSum</span>(<span class="type">int</span>[] <span class="var">nums</span>) {` },
+  { t: `  <span class="type">List</span><span class="op">&lt;</span><span class="type">List</span><span class="op">&lt;</span><span class="type">Integer</span><span class="op">&gt;&gt;</span> <span class="var">result</span> <span class="op">=</span> <span class="keyword">new</span> <span class="fn">ArrayList</span><span class="op">&lt;&gt;</span>();` },
+  { t: `  <span class="type">Arrays</span>.<span class="fn">sort</span>(<span class="var">nums</span>);  <span class="comment">// Step 1: Sort</span>` },
+  { t: `  <span class="control">for</span> (<span class="type">int</span> <span class="var">i</span> <span class="op">=</span> <span class="num">0</span>; <span class="var">i</span> <span class="op">&lt;</span> <span class="var">nums</span>.length <span class="op">-</span> <span class="num">2</span>; <span class="var">i</span><span class="op">++</span>) {` },
+  { t: `    <span class="control">if</span> (<span class="var">i</span> <span class="op">&gt;</span> <span class="num">0</span> <span class="op">&amp;&amp;</span> <span class="var">nums</span>[<span class="var">i</span>] <span class="op">==</span> <span class="var">nums</span>[<span class="var">i</span> <span class="op">-</span> <span class="num">1</span>]) <span class="control">continue</span>; <span class="comment">// skip dup i</span>` },
+  { t: `    <span class="type">int</span> <span class="var">lo</span> <span class="op">=</span> <span class="var">i</span> <span class="op">+</span> <span class="num">1</span>, <span class="var">hi</span> <span class="op">=</span> <span class="var">nums</span>.length <span class="op">-</span> <span class="num">1</span>;` },
+  { t: `    <span class="control">while</span> (<span class="var">lo</span> <span class="op">&lt;</span> <span class="var">hi</span>) {` },
+  { t: `      <span class="type">int</span> <span class="var">sum</span> <span class="op">=</span> <span class="var">nums</span>[<span class="var">i</span>] <span class="op">+</span> <span class="var">nums</span>[<span class="var">lo</span>] <span class="op">+</span> <span class="var">nums</span>[<span class="var">hi</span>];` },
+  { t: `      <span class="control">if</span> (<span class="var">sum</span> <span class="op">==</span> <span class="num">0</span>) {  <span class="comment">// found a triplet!</span>` },
+  { t: `        <span class="var">result</span>.<span class="fn">add</span>(<span class="type">Arrays</span>.<span class="fn">asList</span>(<span class="var">nums</span>[<span class="var">i</span>], <span class="var">nums</span>[<span class="var">lo</span>], <span class="var">nums</span>[<span class="var">hi</span>]));` },
+  { t: `        <span class="control">while</span> (<span class="var">lo</span> <span class="op">&lt;</span> <span class="var">hi</span> <span class="op">&amp;&amp;</span> <span class="var">nums</span>[<span class="var">lo</span>] <span class="op">==</span> <span class="var">nums</span>[<span class="var">lo</span><span class="op">+</span><span class="num">1</span>]) <span class="var">lo</span><span class="op">++</span>; <span class="comment">// skip dup lo</span>` },
+  { t: `        <span class="control">while</span> (<span class="var">lo</span> <span class="op">&lt;</span> <span class="var">hi</span> <span class="op">&amp;&amp;</span> <span class="var">nums</span>[<span class="var">hi</span>] <span class="op">==</span> <span class="var">nums</span>[<span class="var">hi</span><span class="op">-</span><span class="num">1</span>]) <span class="var">hi</span><span class="op">--</span>; <span class="comment">// skip dup hi</span>` },
+  { t: `        <span class="var">lo</span><span class="op">++</span>; <span class="var">hi</span><span class="op">--</span>;  <span class="comment">// move both inward</span>` },
+  { t: `      } <span class="control">else if</span> (<span class="var">sum</span> <span class="op">&lt;</span> <span class="num">0</span>) {  <span class="comment">// too small → lo++</span>` },
+  { t: `        <span class="var">lo</span><span class="op">++</span>;` },
+  { t: `      } <span class="control">else</span> {  <span class="comment">// too big → hi--</span>` },
+  { t: `        <span class="var">hi</span><span class="op">--</span>;` },
+  { t: `      }` },
+  { t: `    }` },
+  { t: `  }` },
+  { t: `  <span class="control">return</span> <span class="var">result</span>;` },
+  { t: `}` },
+];
+
+// Build code panel
+const codeDiv = document.getElementById('codeLines');
+CODE.forEach((c, idx) => {
+  const d = document.createElement('div');
+  d.className = 'code-line';
+  d.id = `line-${idx+1}`;
+  d.innerHTML = `<span class="gutter">${idx+1}</span><span class="code-text">${c.t}</span>`;
+  codeDiv.appendChild(d);
+});
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let steps = [];
+let currentStep = 0;
+let isPlaying = false;
+let timer = null;
+
+// ─── ALGORITHM SIMULATOR ─────────────────────────────────────────────────────
+function generateSteps(arr) {
+  const history = [];
+  const nums = [...arr].sort((a,b) => a-b);
+  const result = [];
+
+  const snap = (line, desc, i, lo, hi, sum, tripletFlash, skipI) => {
+    history.push({
+      line, desc,
+      nums: [...nums],
+      i: i === undefined ? null : i,
+      lo: lo === undefined ? null : lo,
+      hi: hi === undefined ? null : hi,
+      sum: sum === undefined ? null : sum,
+      result: result.map(r=>[...r]),
+      tripletFlash: !!tripletFlash,
+      skipI: !!skipI,
+    });
+  };
+
+  snap(1, `Function called. Array received: [${arr.join(', ')}]`, null, null, null, null);
+  snap(2, `result list initialized as empty ArrayList`, null, null, null, null);
+  snap(3, `Arrays.sort(nums) → sorted array: [${nums.join(', ')}]`, null, null, null, null);
+
+  const n = nums.length;
+  for (let i = 0; i <= n - 3; i++) {
+    snap(4, `Outer loop: i = ${i}, nums[i] = ${nums[i]}. Loop condition: i < ${n-2} → ${i < n-2}`, i, null, null, null);
+    if (i > 0 && nums[i] === nums[i-1]) {
+      snap(5, `⚠️ Duplicate skip: nums[${i}]=${nums[i]} == nums[${i-1}]=${nums[i-1]} → skip this i to avoid duplicate triplets`, i, null, null, null, false, true);
+      continue;
+    }
+    snap(5, `Duplicate check: i=${i}==0 or nums[${i}]=${nums[i]} ≠ nums[${i-1}]=${i>0?nums[i-1]:'—'} → no skip, continue`, i, null, null, null);
+    let lo = i + 1, hi = n - 1;
+    snap(6, `Set lo = i+1 = ${lo}, hi = n-1 = ${hi}. Two pointers positioned.`, i, lo, hi, null);
+
+    while (lo < hi) {
+      snap(7, `While loop check: lo=${lo} < hi=${hi} → ${lo < hi}`, i, lo, hi, null);
+      const sum = nums[i] + nums[lo] + nums[hi];
+      snap(8, `Compute sum = nums[${i}] + nums[${lo}] + nums[${hi}] = ${nums[i]} + ${nums[lo]} + ${nums[hi]} = ${sum}`, i, lo, hi, sum);
+
+      if (sum === 0) {
+        result.push([nums[i], nums[lo], nums[hi]]);
+        snap(9, `✅ sum == 0! Triplet found: [${nums[i]}, ${nums[lo]}, ${nums[hi]}] → add to result!`, i, lo, hi, sum, true);
+        snap(10, `result.add([${nums[i]}, ${nums[lo]}, ${nums[hi]}]). Total results: ${result.length}`, i, lo, hi, sum, true);
+
+        // skip dup lo
+        while (lo < hi && nums[lo] === nums[lo+1]) {
+          snap(11, `Skip duplicate lo: nums[${lo}]=${nums[lo]} == nums[${lo+1}]=${nums[lo+1]} → lo++`, i, lo, hi, sum);
+          lo++;
+        }
+        snap(11, `lo dup-skip done. lo = ${lo}`, i, lo, hi, sum);
+        // skip dup hi
+        while (lo < hi && nums[hi] === nums[hi-1]) {
+          snap(12, `Skip duplicate hi: nums[${hi}]=${nums[hi]} == nums[${hi-1}]=${nums[hi-1]} → hi--`, i, lo, hi, sum);
+          hi--;
+        }
+        snap(12, `hi dup-skip done. hi = ${hi}`, i, lo, hi, sum);
+        lo++; hi--;
+        snap(13, `Move both: lo++ → ${lo}, hi-- → ${hi}`, i, lo, hi, null);
+      } else if (sum < 0) {
+        snap(14, `sum = ${sum} < 0 → Too small! Need bigger number → lo++`, i, lo, hi, sum);
+        lo++;
+        snap(15, `lo moved right: lo = ${lo}`, i, lo, hi, null);
+      } else {
+        snap(16, `sum = ${sum} > 0 → Too big! Need smaller number → hi--`, i, lo, hi, sum);
+        hi--;
+        snap(17, `hi moved left: hi = ${hi}`, i, lo, hi, null);
+      }
+    }
+    snap(7, `While loop ends: lo=${lo} >= hi=${hi}. Done with i=${i}.`, i, lo, hi, null);
+  }
+
+  snap(4, `Outer loop ends: i reached n-2 = ${n-3}. All combinations checked.`, null, null, null, null);
+  snap(21, `return result → ${result.length} triplet(s) found: ${result.map(r=>`[${r.join(',')}]`).join(' ')}`, null, null, null, null);
+  return history;
+}
+
+// ─── DOM BUILDER ─────────────────────────────────────────────────────────────
+function buildDOM(nums) {
+  const container = document.getElementById('arrNodes');
+  container.innerHTML = '';
+  nums.forEach((v, idx) => {
+    const node = document.createElement('div');
+    node.className = 'arr-node';
+    node.id = `node-${idx}`;
+    node.innerHTML = `<span>${v}</span><span class="idx-label">[${idx}]</span>`;
+    container.appendChild(node);
+  });
+  // heap array
+  const ha = document.getElementById('heap-arr');
+  ha.innerHTML = '';
+  nums.forEach((v,idx) => {
+    const c = document.createElement('span');
+    c.className = 'heap-cell';
+    c.id = `hc-${idx}`;
+    c.textContent = v;
+    ha.appendChild(c);
+  });
+}
+
+// ─── RENDERER ─────────────────────────────────────────────────────────────────
+function applyStep(s) {
+  // Highlight code line
+  document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+  const lineEl = document.getElementById(`line-${s.line}`);
+  if (lineEl) {
+    lineEl.classList.add('active');
+    lineEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+  // Status bar
+  document.getElementById('statusBar').textContent = `→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent = `Step ${currentStep+1} / ${steps.length}`;
+
+  // Array nodes color
+  const n = s.nums.length;
+  for (let idx = 0; idx < n; idx++) {
+    const node = document.getElementById(`node-${idx}`);
+    const hc = document.getElementById(`hc-${idx}`);
+    if (!node) continue;
+    node.className = 'arr-node';
+    hc.className = 'heap-cell';
+    if (idx === s.i) { node.classList.add('i-node'); hc.classList.add('hl-i'); }
+    else if (idx === s.lo) { node.classList.add('lo-node'); hc.classList.add('hl-lo'); }
+    else if (idx === s.hi) { node.classList.add('hi-node'); hc.classList.add('hl-hi'); }
+
+    if (s.tripletFlash && (idx===s.i||idx===s.lo||idx===s.hi)) {
+      node.classList.add('triplet');
+    }
+    if (s.skipI && idx===s.i) { node.classList.add('skip'); }
+  }
+
+  // Pointer labels inside nodes (add text label as sub-element overlay)
+  // We'll use title-style overlay for i/lo/hi
+  document.querySelectorAll('.ptr-tag').forEach(e=>e.remove());
+  const addTag = (idx, label, cls) => {
+    const node = document.getElementById(`node-${idx}`);
+    if (!node) return;
+    const tag = document.createElement('div');
+    tag.className = 'ptr-tag';
+    tag.style.cssText = `position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:.65rem;font-weight:700;white-space:nowrap;`;
+    tag.style.color = cls === 'i' ? 'var(--red)' : cls === 'lo' ? 'var(--orange)' : 'var(--pointer-alt)';
+    tag.textContent = label;
+    node.style.position = 'relative';
+    node.appendChild(tag);
+  };
+  if (s.i !== null) addTag(s.i, '▼ i', 'i');
+  if (s.lo !== null) addTag(s.lo, '▼ lo', 'lo');
+  if (s.hi !== null) addTag(s.hi, '▼ hi', 'hi');
+
+  // Sum viz
+  const sumViz = document.getElementById('sumViz');
+  if (s.i !== null && s.lo !== null && s.hi !== null) {
+    sumViz.style.display = 'flex';
+    document.getElementById('sv-i').textContent = s.nums[s.i] ?? '?';
+    document.getElementById('sv-lo').textContent = s.nums[s.lo] ?? '?';
+    document.getElementById('sv-hi').textContent = s.nums[s.hi] ?? '?';
+    if (s.sum !== null) {
+      document.getElementById('sv-sum').textContent = s.sum;
+      const cmp = s.sum === 0 ? '== 0 ✅' : s.sum < 0 ? `< 0 → lo++` : `> 0 → hi--`;
+      document.getElementById('sv-cmp').textContent = cmp;
+    } else {
+      document.getElementById('sv-sum').textContent = '?';
+      document.getElementById('sv-cmp').textContent = '';
+    }
+  } else {
+    sumViz.style.display = 'none';
+  }
+
+  // Triplet banner
+  const banner = document.getElementById('tripletBanner');
+  banner.style.display = s.tripletFlash ? 'block' : 'none';
+
+  // Result list
+  const rl = document.getElementById('resultList');
+  rl.innerHTML = '';
+  if (s.result.length === 0) {
+    rl.innerHTML = '<span style="color:var(--text-dim);font-size:.8rem;">None yet…</span>';
+  } else {
+    s.result.forEach((r, idx) => {
+      const div = document.createElement('div');
+      div.className = 'result-item';
+      if (s.tripletFlash && idx === s.result.length-1) div.classList.add('new');
+      div.textContent = `[${r.join(', ')}]`;
+      rl.appendChild(div);
+    });
+  }
+
+  // heap result
+  document.getElementById('heap-res').textContent = `[${s.result.map(r=>`[${r.join(',')}]`).join(', ')}]`;
+
+  // Variables
+  updateVar('var-n', s.nums.length);
+  updateVar('var-i', s.i !== null ? s.i : '—');
+  updateVar('var-lo', s.lo !== null ? s.lo : '—');
+  updateVar('var-hi', s.hi !== null ? s.hi : '—');
+  updateVar('var-sum', s.sum !== null ? s.sum : '—');
+  updateVar('var-numsi', s.i !== null ? s.nums[s.i] : '—');
+  updateVar('var-numslo', s.lo !== null ? s.nums[s.lo] : '—');
+  updateVar('var-numshi', s.hi !== null ? s.nums[s.hi] : '—');
+}
+
+function updateVar(id, newVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = (newVal === null || newVal === undefined) ? '—' : String(newVal);
+  if (el.textContent !== v) {
+    el.textContent = v;
+    el.classList.remove('changed');
+    void el.offsetWidth;
+    el.classList.add('changed');
+  }
+}
+
+// ─── CONTROLS ────────────────────────────────────────────────────────────────
+function nextStep() {
+  if (currentStep < steps.length - 1) { currentStep++; applyStep(steps[currentStep]); updateBtns(); }
+  else stopPlay();
+}
+function prevStep() {
+  if (currentStep > 0) { currentStep--; applyStep(steps[currentStep]); updateBtns(); }
+}
+function togglePlay() { isPlaying ? stopPlay() : startPlay(); }
+function startPlay() {
+  if (currentStep === steps.length-1) currentStep = 0;
+  isPlaying = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  tick();
+}
+function stopPlay() {
+  isPlaying = false;
+  clearTimeout(timer);
+  document.getElementById('btnPlay').textContent = '▶ Play';
+}
+function tick() {
+  if (!isPlaying) return;
+  if (currentStep < steps.length-1) {
+    nextStep();
+    const delay = 2100 - parseInt(document.getElementById('speed').value) * 20;
+    timer = setTimeout(tick, delay);
+  } else stopPlay();
+}
+function updateBtns() {
+  document.getElementById('btnPrev').disabled = currentStep === 0;
+  document.getElementById('btnNext').disabled = currentStep === steps.length-1;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function loadInput() {
+  stopPlay();
+  const raw = document.getElementById('inputArr').value;
+  const input = raw.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  if (input.length < 3) {
+    document.getElementById('statusBar').textContent = '⚠ Please enter at least 3 numbers.';
+    return;
+  }
+  const sorted = [...input].sort((a,b)=>a-b);
+  buildDOM(sorted);
+  steps = generateSteps(input);
+  currentStep = 0;
+  applyStep(steps[0]);
+  updateBtns();
+}
+window.addEventListener('load', loadInput);
+</script>
+</body>
+</html>
