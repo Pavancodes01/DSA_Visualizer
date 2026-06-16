@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Trapping Rain Water – Dry Run</title>
+<style>
+:root {
+  --bg: #1e1e1e; --panel-bg: #252526; --border: #3e3e42;
+  --text: #d4d4d4; --text-dim: #858585; --accent: #007acc;
+  --active-line: #37373d; --green: #4ec9b0; --yellow: #dcdcaa;
+  --orange: #ce9178; --purple: #c586c0; --blue: #569cd6;
+  --lt-blue: #9cdcfe; --red: #f44747; --pointer-alt: #50fa7b;
+  --water: rgba(100,180,255,0.45); --water-border: #4db8ff;
+  --font-mono: 'Consolas','Monaco','Courier New',monospace;
+  --font-ui: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* HEADER */
+header{background:var(--panel-bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0}
+header .title{font-size:1rem;font-weight:700;color:var(--yellow);white-space:nowrap}
+.input-group{display:flex;align-items:center;gap:6px}
+.input-group label{font-size:.8rem;color:var(--text-dim)}
+.input-group input{background:#3c3c3c;border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-family:var(--font-mono);font-size:.8rem;width:240px}
+.controls{display:flex;align-items:center;gap:6px}
+button{background:#3c3c3c;border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:4px;cursor:pointer;font-size:.8rem;transition:background .2s}
+button:hover:not(:disabled){background:#4e4e4e}
+button:disabled{opacity:.4;cursor:default}
+#btnPlay{background:var(--accent);border-color:var(--accent);color:#fff}
+.speed-wrap{display:flex;align-items:center;gap:5px;font-size:.78rem;color:var(--text-dim)}
+.speed-wrap input{width:70px;cursor:pointer}
+.step-counter{font-size:.78rem;color:var(--text-dim);white-space:nowrap;margin-left:auto}
+
+/* MAIN 3-COLUMN */
+main{display:grid;grid-template-columns:400px 1fr 250px;flex:1;min-height:0;overflow:hidden}
+.panel{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.panel-label{font-size:.7rem;color:var(--text-dim);letter-spacing:.08em;padding:7px 12px;background:var(--panel-bg);border-bottom:1px solid var(--border);text-transform:uppercase}
+
+/* CODE PANEL */
+#codePanel{overflow-y:auto;padding:8px 0;background:var(--bg)}
+.code-line{display:flex;align-items:flex-start;padding:1px 10px 1px 0;min-height:22px;position:relative;transition:background .2s}
+.code-line.active{background:var(--active-line);border-left:3px solid var(--accent)}
+.code-line:not(.active){border-left:3px solid transparent}
+.gutter{min-width:32px;color:var(--text-dim);font-size:.78rem;font-family:var(--font-mono);text-align:right;padding-right:10px;user-select:none;padding-top:2px;line-height:1.5}
+.code-text{font-size:.78rem;font-family:var(--font-mono);line-height:1.65;white-space:pre}
+.keyword{color:var(--blue)} .type{color:var(--blue)} .var{color:var(--lt-blue)}
+.num{color:#b5cea8} .comment{color:#6a9955;font-style:italic}
+.control{color:var(--purple)} .str{color:var(--orange)} .fn{color:var(--yellow)}
+
+/* VIZ PANEL */
+#vizPanel{display:flex;flex-direction:column;overflow:hidden}
+#vizArea{flex:1;position:relative;overflow:hidden;padding:0}
+#statusBar{background:var(--panel-bg);border-top:1px solid var(--border);padding:8px 14px;font-size:.8rem;color:var(--green);min-height:44px;line-height:1.45}
+
+/* CANVAS AREA */
+#vizCanvas{width:100%;height:100%;position:relative;overflow:hidden}
+#vizSvg{width:100%;height:100%}
+
+/* VARIABLES PANEL */
+#varPanel{overflow-y:auto;padding:10px}
+.mem-section{margin-bottom:14px}
+.mem-label{font-size:.68rem;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:8px}
+.var-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:.78rem;border-bottom:1px solid #2d2d2d}
+.var-name{color:var(--lt-blue);font-family:var(--font-mono)}
+.var-val{color:var(--green);font-family:var(--font-mono);font-weight:600;padding:1px 5px;border-radius:3px;min-width:28px;text-align:right}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(0,122,204,0.4)}}
+.var-val.changed{animation:flash .5s ease}
+
+/* Legend */
+#legend{display:flex;gap:12px;padding:6px 14px;background:var(--panel-bg);border-top:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--text-dim)}
+.leg-swatch{width:14px;height:14px;border-radius:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="title">🌧 Trapping Rain Water</span>
+  <div class="input-group">
+    <label>height[]:</label>
+    <input type="text" id="inputArr" value="0,1,0,2,1,0,1,3,2,1,2,1"/>
+    <button onclick="loadInput()">Load</button>
+  </div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap">
+      <span>Speed</span>
+      <input type="range" id="speed" min="1" max="100" value="40"/>
+    </div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / ?</div>
+</header>
+
+<main>
+  <!-- CODE PANEL -->
+  <div class="panel">
+    <div class="panel-label">Java Code – Two Pointer Approach</div>
+    <div id="codePanel">
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="keyword">public int</span> <span class="fn">trap</span>(<span class="type">int</span>[] <span class="var">height</span>) {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">  <span class="type">int</span> <span class="var">n</span> = <span class="var">height</span>.length;</span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text">  <span class="type">int</span> <span class="var">left</span> = <span class="num">0</span>, <span class="var">right</span> = <span class="var">n</span> - <span class="num">1</span>;</span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">  <span class="type">int</span> <span class="var">maxLeft</span> = <span class="num">0</span>, <span class="var">maxRight</span> = <span class="num">0</span>;</span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text">  <span class="type">int</span> <span class="var">water</span> = <span class="num">0</span>;</span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">  </span></div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text">  <span class="control">while</span> (<span class="var">left</span> &lt; <span class="var">right</span>) {</span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text">    <span class="control">if</span> (<span class="var">height</span>[<span class="var">left</span>] &lt; <span class="var">height</span>[<span class="var">right</span>]) {</span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">      <span class="control">if</span> (<span class="var">height</span>[<span class="var">left</span>] &gt;= <span class="var">maxLeft</span>) {</span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">        <span class="var">maxLeft</span> = <span class="var">height</span>[<span class="var">left</span>];</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">      } <span class="control">else</span> {</span></div>
+      <div class="code-line" id="line-12"><span class="gutter">12</span><span class="code-text">        <span class="var">water</span> += <span class="var">maxLeft</span> - <span class="var">height</span>[<span class="var">left</span>];</span></div>
+      <div class="code-line" id="line-13"><span class="gutter">13</span><span class="code-text">      }</span></div>
+      <div class="code-line" id="line-14"><span class="gutter">14</span><span class="code-text">      <span class="var">left</span>++;</span></div>
+      <div class="code-line" id="line-15"><span class="gutter">15</span><span class="code-text">    } <span class="control">else</span> {</span></div>
+      <div class="code-line" id="line-16"><span class="gutter">16</span><span class="code-text">      <span class="control">if</span> (<span class="var">height</span>[<span class="var">right</span>] &gt;= <span class="var">maxRight</span>) {</span></div>
+      <div class="code-line" id="line-17"><span class="gutter">17</span><span class="code-text">        <span class="var">maxRight</span> = <span class="var">height</span>[<span class="var">right</span>];</span></div>
+      <div class="code-line" id="line-18"><span class="gutter">18</span><span class="code-text">      } <span class="control">else</span> {</span></div>
+      <div class="code-line" id="line-19"><span class="gutter">19</span><span class="code-text">        <span class="var">water</span> += <span class="var">maxRight</span> - <span class="var">height</span>[<span class="var">right</span>];</span></div>
+      <div class="code-line" id="line-20"><span class="gutter">20</span><span class="code-text">      }</span></div>
+      <div class="code-line" id="line-21"><span class="gutter">21</span><span class="code-text">      <span class="var">right</span>--;</span></div>
+      <div class="code-line" id="line-22"><span class="gutter">22</span><span class="code-text">    }</span></div>
+      <div class="code-line" id="line-23"><span class="gutter">23</span><span class="code-text">  } <span class="comment">// end while</span></span></div>
+      <div class="code-line" id="line-24"><span class="gutter">24</span><span class="code-text">  <span class="control">return</span> <span class="var">water</span>;</span></div>
+      <div class="code-line" id="line-25"><span class="gutter">25</span><span class="code-text">}</span></div>
+    </div>
+  </div>
+
+  <!-- VIZ PANEL -->
+  <div class="panel" style="border-right:none">
+    <div class="panel-label">Visualization</div>
+    <div id="vizArea">
+      <div id="vizCanvas">
+        <svg id="vizSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+    <div id="legend">
+      <div class="leg-item"><div class="leg-swatch" style="background:#4a4a6a;border:1px solid #888"></div>Wall/Bar</div>
+      <div class="leg-item"><div class="leg-swatch" style="background:rgba(100,180,255,0.5);border:1px solid #4db8ff"></div>Trapped Water</div>
+      <div class="leg-item"><div class="leg-swatch" style="background:rgba(244,71,71,0.4);border:1px solid var(--red)"></div>Left Pointer</div>
+      <div class="leg-item"><div class="leg-swatch" style="background:rgba(80,250,123,0.4);border:1px solid var(--pointer-alt)"></div>Right Pointer</div>
+      <div class="leg-item"><div class="leg-swatch" style="background:rgba(220,220,170,0.3);border:1px solid var(--yellow)"></div>maxLeft wall</div>
+      <div class="leg-item"><div class="leg-swatch" style="background:rgba(206,145,120,0.3);border:1px solid var(--orange)"></div>maxRight wall</div>
+    </div>
+    <div id="statusBar">→ Press Play or Next to start the dry run...</div>
+  </div>
+
+  <!-- VARIABLES PANEL -->
+  <div class="panel" style="border-right:none;border-left:1px solid var(--border)">
+    <div class="panel-label">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Stack (Primitives)</div>
+        <div class="var-row"><span class="var-name">n</span><span class="var-val" id="var-n">—</span></div>
+        <div class="var-row"><span class="var-name">left</span><span class="var-val" id="var-left">—</span></div>
+        <div class="var-row"><span class="var-name">right</span><span class="var-val" id="var-right">—</span></div>
+        <div class="var-row"><span class="var-name">maxLeft</span><span class="var-val" id="var-maxLeft">—</span></div>
+        <div class="var-row"><span class="var-name">maxRight</span><span class="var-val" id="var-maxRight">—</span></div>
+        <div class="var-row"><span class="var-name">water</span><span class="var-val" id="var-water">—</span></div>
+        <div class="var-row"><span class="var-name">h[left]</span><span class="var-val" id="var-hl">—</span></div>
+        <div class="var-row"><span class="var-name">h[right]</span><span class="var-val" id="var-hr">—</span></div>
+        <div class="var-row"><span class="var-name">+water</span><span class="var-val" id="var-added" style="color:var(--water-border)">—</span></div>
+      </div>
+      <div class="mem-section">
+        <div class="mem-label">Heap (Arrays)</div>
+        <div id="heapArr" style="font-size:.72rem;font-family:var(--font-mono);color:var(--text-dim);line-height:1.8;word-break:break-all"></div>
+      </div>
+      <div class="mem-section" style="margin-top:8px">
+        <div class="mem-label">💡 Key Insight</div>
+        <div id="insight" style="font-size:.73rem;color:var(--text-dim);line-height:1.5;padding:4px 0">
+          Water at any index = min(maxLeft, maxRight) − height[i]
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+let steps = [], currentStep = 0, isPlaying = false, timer = null;
+let globalArr = [];
+
+/* ── ALGORITHM SIMULATOR ── */
+function generateSteps(h) {
+  const history = [];
+  const n = h.length;
+  const snap = (line, desc, left, right, maxLeft, maxRight, water, added, insightTxt) => {
+    history.push({ line, desc, left, right, maxLeft, maxRight, water, added: added ?? null, n, arr: [...h], insight: insightTxt ?? null });
+  };
+
+  snap(2, `Initialize: n = height.length = ${n}`, 0, n-1, 0, 0, 0, null, 'n is the total number of bars in the histogram.');
+  snap(3, `Set left = 0 (leftmost index), right = ${n-1} (rightmost index)`, 0, n-1, 0, 0, 0, null, 'Two pointers start at both ends and move inward.');
+  snap(4, 'Set maxLeft = 0, maxRight = 0 — tallest walls seen from each side so far', 0, n-1, 0, 0, 0, null, 'maxLeft/maxRight track the highest bar we\'ve seen from each direction.');
+  snap(5, 'Set water = 0 — accumulator for trapped rain water', 0, n-1, 0, 0, 0, null, 'We add trapped water each time we find a shorter bar behind a tall wall.');
+
+  let left = 0, right = n - 1, maxLeft = 0, maxRight = 0, water = 0;
+
+  while (left < right) {
+    snap(7, `while check: left=${left} < right=${right} → ${left < right ? 'TRUE, enter loop' : 'FALSE, exit loop'}`, left, right, maxLeft, maxRight, water, null, `Two pointers haven't crossed yet — still area to explore.`);
+
+    snap(8, `Compare height[left=${left}]=${h[left]} vs height[right=${right}]=${h[right]} → ${h[left] < h[right] ? 'left is shorter, process LEFT side' : 'right is shorter or equal, process RIGHT side'}`, left, right, maxLeft, maxRight, water, null, 'We always process the SHORTER side — the shorter side limits water capacity.');
+
+    if (h[left] < h[right]) {
+      snap(9, `height[left=${left}]=${h[left]} >= maxLeft=${maxLeft} ? → ${h[left] >= maxLeft ? 'YES — update maxLeft' : 'NO — this bar is shorter, water can be trapped!'}`, left, right, maxLeft, maxRight, water, null, 'If current bar is taller than max seen, update maxLeft. Otherwise trap water.');
+      if (h[left] >= maxLeft) {
+        maxLeft = h[left];
+        snap(10, `maxLeft updated to ${maxLeft} (height[${left}]=${h[left]} is new tallest on left side)`, left, right, maxLeft, maxRight, water, null, `maxLeft is now ${maxLeft}. This wall can hold water for future shorter bars.`);
+      } else {
+        const add = maxLeft - h[left];
+        water += add;
+        snap(12, `height[${left}]=${h[left]} < maxLeft=${maxLeft} → trap water: maxLeft - h[left] = ${maxLeft} - ${h[left]} = ${add}. Total water = ${water}`, left, right, maxLeft, maxRight, water, add, `🌊 Trapped ${add} unit(s) here! Water fills up to maxLeft=${maxLeft}, bar is only ${h[left]} tall.`);
+      }
+      left++;
+      snap(14, `left++ → left moves from ${left-1} to ${left}`, left, right, maxLeft, maxRight, water, null, 'Move left pointer inward to explore next bar.');
+    } else {
+      snap(16, `height[right=${right}]=${h[right]} >= maxRight=${maxRight} ? → ${h[right] >= maxRight ? 'YES — update maxRight' : 'NO — this bar is shorter, water can be trapped!'}`, left, right, maxLeft, maxRight, water, null, 'If current bar is taller than max seen from right, update maxRight. Otherwise trap water.');
+      if (h[right] >= maxRight) {
+        maxRight = h[right];
+        snap(17, `maxRight updated to ${maxRight} (height[${right}]=${h[right]} is new tallest on right side)`, left, right, maxLeft, maxRight, water, null, `maxRight is now ${maxRight}. This wall can hold water for future shorter bars.`);
+      } else {
+        const add = maxRight - h[right];
+        water += add;
+        snap(19, `height[${right}]=${h[right]} < maxRight=${maxRight} → trap water: maxRight - h[right] = ${maxRight} - ${h[right]} = ${add}. Total water = ${water}`, left, right, maxLeft, maxRight, water, add, `🌊 Trapped ${add} unit(s) here! Water fills up to maxRight=${maxRight}, bar is only ${h[right]} tall.`);
+      }
+      right--;
+      snap(21, `right-- → right moves from ${right+1} to ${right}`, left, right, maxLeft, maxRight, water, null, 'Move right pointer inward to explore next bar.');
+    }
+  }
+  snap(23, `while check: left=${left} < right=${right} → FALSE. Pointers met — loop ends.`, left, right, maxLeft, maxRight, water, null, 'All bars processed! Both pointers have crossed.');
+  snap(24, `✅ Return water = ${water}. Total rain water trapped = ${water} units.`, left, right, maxLeft, maxRight, water, null, `🎉 Final answer: ${water} units of water are trapped between the bars.`);
+
+  return history;
+}
+
+/* ── SVG RENDERER ── */
+function buildSvg(arr) {
+  const svg = document.getElementById('vizSvg');
+  svg.innerHTML = '';
+  const W = svg.clientWidth || 700;
+  const H = svg.clientHeight || 320;
+  const n = arr.length;
+  const maxH = Math.max(...arr, 1);
+  const PAD_L = 30, PAD_R = 20, PAD_T = 50, PAD_B = 60;
+  const bw = Math.min(50, Math.floor((W - PAD_L - PAD_R) / n) - 2);
+  const gap = Math.floor((W - PAD_L - PAD_R) / n);
+  const chartH = H - PAD_T - PAD_B;
+
+  svg._meta = { W, H, n, maxH, PAD_L, PAD_R, PAD_T, PAD_B, bw, gap, chartH, arr };
+  renderFrame(steps[currentStep]);
+}
+
+function barX(i, meta) { return meta.PAD_L + i * meta.gap + (meta.gap - meta.bw) / 2; }
+function barH(v, meta) { return (v / meta.maxH) * meta.chartH; }
+function barY(v, meta) { return meta.PAD_T + meta.chartH - barH(v, meta); }
+
+function renderFrame(s) {
+  if (!s) return;
+  const svg = document.getElementById('vizSvg');
+  svg.innerHTML = '';
+  const W = svg.clientWidth || 700;
+  const H = svg.clientHeight || 320;
+  const arr = s.arr;
+  const n = arr.length;
+  const maxH = Math.max(...arr, 1);
+  const PAD_L = 30, PAD_R = 20, PAD_T = 55, PAD_B = 55;
+  const gapW = Math.floor((W - PAD_L - PAD_R) / n);
+  const bw = Math.max(8, Math.min(44, gapW - 4));
+  const chartH = H - PAD_T - PAD_B;
+  const ns = 'http://www.w3.org/2000/svg';
+
+  const bx = i => PAD_L + i * gapW + (gapW - bw) / 2;
+  const bH = v => (v / maxH) * chartH;
+  const bY = v => PAD_T + chartH - bH(v);
+
+  // Ground line
+  const gline = document.createElementNS(ns, 'line');
+  gline.setAttribute('x1', PAD_L); gline.setAttribute('x2', W - PAD_R);
+  gline.setAttribute('y1', PAD_T + chartH); gline.setAttribute('y2', PAD_T + chartH);
+  gline.setAttribute('stroke', '#444'); gline.setAttribute('stroke-width', '1.5');
+  svg.appendChild(gline);
+
+  // Water level lines for maxLeft and maxRight
+  if (s.maxLeft > 0) {
+    const ml = document.createElementNS(ns, 'line');
+    ml.setAttribute('x1', PAD_L); ml.setAttribute('x2', bx(s.left) + bw);
+    const y = bY(s.maxLeft);
+    ml.setAttribute('y1', y); ml.setAttribute('y2', y);
+    ml.setAttribute('stroke', '#dcdcaa'); ml.setAttribute('stroke-width', '1');
+    ml.setAttribute('stroke-dasharray', '4,3'); ml.setAttribute('opacity', '0.6');
+    svg.appendChild(ml);
+  }
+  if (s.maxRight > 0) {
+    const mr = document.createElementNS(ns, 'line');
+    mr.setAttribute('x1', bx(s.right)); mr.setAttribute('x2', W - PAD_R);
+    const y = bY(s.maxRight);
+    mr.setAttribute('y1', y); mr.setAttribute('y2', y);
+    mr.setAttribute('stroke', '#ce9178'); mr.setAttribute('stroke-width', '1');
+    mr.setAttribute('stroke-dasharray', '4,3'); mr.setAttribute('opacity', '0.6');
+    svg.appendChild(mr);
+  }
+
+  // Bars + water
+  for (let i = 0; i < n; i++) {
+    const x = bx(i);
+    const ground = PAD_T + chartH;
+
+    // Determine bar color
+    let fill = '#4a4a6a', stroke = '#888';
+    if (i === s.left) { fill = 'rgba(244,71,71,0.45)'; stroke = '#f44747'; }
+    else if (i === s.right) { fill = 'rgba(80,250,123,0.45)'; stroke = '#50fa7b'; }
+
+    // Water rect (behind bar)
+    const waterLevel = Math.min(s.maxLeft, s.maxRight);
+    if (i > s.left && i < s.right && waterLevel > arr[i]) {
+      const wh = bH(waterLevel - arr[i]);
+      const wy = bY(waterLevel);
+      const wRect = document.createElementNS(ns, 'rect');
+      wRect.setAttribute('x', x); wRect.setAttribute('y', wy);
+      wRect.setAttribute('width', bw); wRect.setAttribute('height', wh);
+      wRect.setAttribute('fill', 'rgba(100,180,255,0.38)');
+      wRect.setAttribute('stroke', '#4db8ff'); wRect.setAttribute('stroke-width', '0.5');
+      svg.appendChild(wRect);
+
+      // Wavy lines inside water
+      for (let wy2 = wy + 6; wy2 < wy + wh - 2; wy2 += 8) {
+        const wave = document.createElementNS(ns, 'path');
+        let d = `M ${x+2} ${wy2}`;
+        for (let wx = x+2; wx < x+bw-2; wx+=4) {
+          d += ` q 2,-2 4,0`;
+        }
+        wave.setAttribute('d', d);
+        wave.setAttribute('stroke', 'rgba(150,210,255,0.25)');
+        wave.setAttribute('stroke-width', '1');
+        wave.setAttribute('fill', 'none');
+        svg.appendChild(wave);
+      }
+    }
+
+    // Bar rect
+    if (arr[i] > 0) {
+      const rect = document.createElementNS(ns, 'rect');
+      rect.setAttribute('x', x); rect.setAttribute('y', bY(arr[i]));
+      rect.setAttribute('width', bw); rect.setAttribute('height', bH(arr[i]));
+      rect.setAttribute('fill', fill); rect.setAttribute('stroke', stroke);
+      rect.setAttribute('stroke-width', '1.5'); rect.setAttribute('rx', '2');
+      svg.appendChild(rect);
+    }
+
+    // Index label (below)
+    const idxLbl = document.createElementNS(ns, 'text');
+    idxLbl.setAttribute('x', x + bw/2); idxLbl.setAttribute('y', ground + 16);
+    idxLbl.setAttribute('text-anchor', 'middle'); idxLbl.setAttribute('fill', '#666');
+    idxLbl.setAttribute('font-size', '11'); idxLbl.setAttribute('font-family', 'Consolas,monospace');
+    idxLbl.textContent = i;
+    svg.appendChild(idxLbl);
+
+    // Height value label (above bar)
+    if (arr[i] > 0 || i === s.left || i === s.right) {
+      const vLbl = document.createElementNS(ns, 'text');
+      vLbl.setAttribute('x', x + bw/2); vLbl.setAttribute('y', bY(arr[i]) - 5);
+      vLbl.setAttribute('text-anchor', 'middle');
+      vLbl.setAttribute('fill', (i === s.left) ? '#f44747' : (i === s.right) ? '#50fa7b' : '#aaa');
+      vLbl.setAttribute('font-size', '10'); vLbl.setAttribute('font-family', 'Consolas,monospace');
+      vLbl.textContent = arr[i];
+      svg.appendChild(vLbl);
+    }
+  }
+
+  // Left pointer arrow
+  {
+    const lx = bx(s.left) + bw/2;
+    const ptr = document.createElementNS(ns, 'text');
+    ptr.setAttribute('x', lx); ptr.setAttribute('y', PAD_T + chartH + 35);
+    ptr.setAttribute('text-anchor', 'middle'); ptr.setAttribute('fill', '#f44747');
+    ptr.setAttribute('font-size', '11'); ptr.setAttribute('font-family', 'Consolas,monospace');
+    ptr.setAttribute('font-weight', 'bold');
+    ptr.textContent = `L`;
+    svg.appendChild(ptr);
+    const arr2 = document.createElementNS(ns, 'line');
+    arr2.setAttribute('x1', lx); arr2.setAttribute('y1', PAD_T + chartH + 22);
+    arr2.setAttribute('x2', lx); arr2.setAttribute('y2', PAD_T + chartH + 3);
+    arr2.setAttribute('stroke', '#f44747'); arr2.setAttribute('stroke-width', '1.5');
+    arr2.setAttribute('marker-end', 'url(#arrowRed)');
+    svg.appendChild(arr2);
+  }
+
+  // Right pointer arrow
+  {
+    const rx = bx(s.right) + bw/2;
+    const ptr = document.createElementNS(ns, 'text');
+    ptr.setAttribute('x', rx); ptr.setAttribute('y', PAD_T - 10);
+    ptr.setAttribute('text-anchor', 'middle'); ptr.setAttribute('fill', '#50fa7b');
+    ptr.setAttribute('font-size', '11'); ptr.setAttribute('font-family', 'Consolas,monospace');
+    ptr.setAttribute('font-weight', 'bold');
+    ptr.textContent = 'R';
+    svg.appendChild(ptr);
+    const arr2 = document.createElementNS(ns, 'line');
+    arr2.setAttribute('x1', rx); arr2.setAttribute('y1', PAD_T - 8);
+    arr2.setAttribute('x2', rx); arr2.setAttribute('y2', PAD_T - 2);
+    arr2.setAttribute('stroke', '#50fa7b'); arr2.setAttribute('stroke-width', '1.5');
+    arr2.setAttribute('marker-end', 'url(#arrowGreen)');
+    svg.appendChild(arr2);
+  }
+
+  // Arrow markers
+  const defs = document.createElementNS(ns, 'defs');
+  defs.innerHTML = `
+    <marker id="arrowRed" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L6,3 z" fill="#f44747"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L6,3 z" fill="#50fa7b"/>
+    </marker>`;
+  svg.insertBefore(defs, svg.firstChild);
+
+  // Title bar with water count
+  const title = document.createElementNS(ns, 'text');
+  title.setAttribute('x', W/2); title.setAttribute('y', 18);
+  title.setAttribute('text-anchor', 'middle'); title.setAttribute('fill', '#4db8ff');
+  title.setAttribute('font-size', '12'); title.setAttribute('font-family', 'Consolas,monospace');
+  title.textContent = `💧 Water Trapped So Far: ${s.water} unit(s)`;
+  svg.appendChild(title);
+}
+
+/* ── APPLY STEP ── */
+function applyStep(s) {
+  // Highlight code
+  document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+  const lineEl = document.getElementById(`line-${s.line}`);
+  if (lineEl) { lineEl.classList.add('active'); lineEl.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+
+  // Status
+  document.getElementById('statusBar').textContent = `→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent = `Step ${currentStep+1} / ${steps.length}`;
+
+  // Variables
+  updateVar('var-n', s.n);
+  updateVar('var-left', s.left);
+  updateVar('var-right', s.right);
+  updateVar('var-maxLeft', s.maxLeft);
+  updateVar('var-maxRight', s.maxRight);
+  updateVar('var-water', s.water);
+  updateVar('var-hl', s.arr[s.left] ?? '—');
+  updateVar('var-hr', s.arr[s.right] ?? '—');
+  updateVar('var-added', s.added !== null ? `+${s.added}` : '—');
+
+  // Heap array display
+  const heapDiv = document.getElementById('heapArr');
+  heapDiv.innerHTML = s.arr.map((v, i) => {
+    let c = '#858585';
+    if (i === s.left) c = '#f44747';
+    else if (i === s.right) c = '#50fa7b';
+    return `<span style="color:${c}">${v}</span>`;
+  }).join('<span style="color:#555">, </span>');
+
+  // Insight
+  if (s.insight) {
+    document.getElementById('insight').textContent = s.insight;
+  }
+
+  // SVG
+  renderFrame(s);
+}
+
+function updateVar(id, newVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = (newVal === null || newVal === undefined) ? '—' : String(newVal);
+  if (el.textContent !== v) {
+    el.textContent = v;
+    el.classList.remove('changed');
+    void el.offsetWidth;
+    el.classList.add('changed');
+  }
+}
+
+/* ── CONTROLS ── */
+function nextStep() {
+  if (currentStep < steps.length - 1) { currentStep++; applyStep(steps[currentStep]); updateBtns(); }
+  else stopPlay();
+}
+function prevStep() {
+  if (currentStep > 0) { currentStep--; applyStep(steps[currentStep]); updateBtns(); }
+}
+function togglePlay() { isPlaying ? stopPlay() : startPlay(); }
+function startPlay() {
+  if (currentStep === steps.length - 1) currentStep = 0;
+  isPlaying = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  tick();
+}
+function stopPlay() {
+  isPlaying = false; clearTimeout(timer);
+  document.getElementById('btnPlay').textContent = '▶ Play';
+}
+function tick() {
+  if (!isPlaying) return;
+  if (currentStep < steps.length - 1) {
+    nextStep();
+    const delay = 2100 - parseInt(document.getElementById('speed').value) * 20;
+    timer = setTimeout(tick, delay);
+  } else stopPlay();
+}
+function updateBtns() {
+  document.getElementById('btnPrev').disabled = currentStep === 0;
+  document.getElementById('btnNext').disabled = currentStep === steps.length - 1;
+}
+
+/* ── INIT ── */
+function loadInput() {
+  stopPlay();
+  const raw = document.getElementById('inputArr').value;
+  const arr = raw.split(',').map(Number).filter(n => !isNaN(n));
+  if (arr.length < 2) { alert('Please enter at least 2 numbers'); return; }
+  globalArr = arr;
+  steps = generateSteps(arr);
+  currentStep = 0;
+  applyStep(steps[0]);
+  updateBtns();
+}
+
+window.addEventListener('load', () => {
+  loadInput();
+  window.addEventListener('resize', () => { if (steps.length) renderFrame(steps[currentStep]); });
+});
+</script>
+</body>
+</html>

@@ -76,5 +76,12 @@ const problems = [
         category: "Two Pointers",
         difficulty: "Medium",
         file: "problems/ThreeSum.html"
+    },
+    {
+        id: 11,
+        title:"Trapping Rain Water",
+        category: "Two Pointers",
+        difficulty: "Medium",
+        file: "problems/TrappingRainWater.html"
     }
 ];
