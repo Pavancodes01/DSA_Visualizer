@@ -1,3 +1,3 @@
 # DSA_Visualizer
 
- https://pavancodes01.github.io/DSA_Visualizer/
+https://dsa-visualizer-seven-sepia.vercel.app/
