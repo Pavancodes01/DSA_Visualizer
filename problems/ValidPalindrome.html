@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Valid Palindrome – Dry Run Visualizer</title>
+<style>
+:root {
+  --bg:          #1e1e1e;
+  --panel-bg:    #252526;
+  --border:      #3e3e42;
+  --text:        #d4d4d4;
+  --text-dim:    #858585;
+  --accent:      #007acc;
+  --active-line: #37373d;
+  --green:       #4ec9b0;
+  --yellow:      #dcdcaa;
+  --orange:      #ce9178;
+  --purple:      #c586c0;
+  --blue:        #569cd6;
+  --lt-blue:     #9cdcfe;
+  --red:         #f44747;
+  --pointer-alt: #50fa7b;
+  --font-mono:   'Consolas','Monaco','Courier New',monospace;
+  --font-ui:     -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+
+/* ── RESET & BASE ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+header {
+  flex-shrink: 0;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  min-height: 48px;
+}
+.title { font-size: .95rem; font-weight: 700; color: var(--lt-blue); white-space: nowrap; }
+.lc-badge {
+  background: #f89f1b22; color: #f89f1b;
+  border: 1px solid #f89f1b55; border-radius: 4px;
+  padding: 2px 7px; font-size: .7rem; font-weight: 600; white-space: nowrap;
+}
+.input-group { display: flex; align-items: center; gap: 6px; }
+.input-group label { font-size: .78rem; color: var(--text-dim); white-space: nowrap; }
+.input-group input {
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-mono); font-size: .8rem;
+  padding: 4px 8px; border-radius: 4px; width: 190px;
+}
+.controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+button {
+  background: #3a3d41; border: 1px solid var(--border);
+  color: var(--text); padding: 5px 11px; border-radius: 4px;
+  cursor: pointer; font-size: .8rem; transition: background .2s; white-space: nowrap;
+}
+button:hover:not(:disabled) { background: var(--accent); }
+button:disabled { opacity: .35; cursor: default; }
+#btnPlay { background: #0e639c; border-color: #007acc; }
+.speed-wrap { display: flex; align-items: center; gap: 5px; font-size: .76rem; color: var(--text-dim); }
+input[type=range] { width: 65px; accent-color: var(--accent); }
+.step-counter { font-size: .76rem; color: var(--text-dim); white-space: nowrap; min-width: 85px; text-align: right; }
+
+/* ── MAIN 3-COLUMN GRID ── */
+main {
+  flex: 1;
+  min-height: 0;           /* critical — lets flex children shrink below content size */
+  display: grid;
+  grid-template-columns: 360px 1fr 240px;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+}
+
+/* ── PANEL SHELL ── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  min-height: 0;           /* critical */
+  overflow: hidden;
+}
+.panel:last-child { border-right: none; }
+.panel-header {
+  flex-shrink: 0;
+  background: #2d2d2d;
+  border-bottom: 1px solid var(--border);
+  padding: 5px 12px;
+  font-size: .7rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .08em; font-weight: 600;
+}
+
+/* ── CODE PANEL ── */
+#codePanel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+.code-line {
+  display: flex; align-items: flex-start;
+  padding: 1px 8px 1px 0; line-height: 1.75;
+  font-family: var(--font-mono); font-size: .8rem;
+  border-left: 3px solid transparent;
+  transition: background .2s, border-color .2s;
+}
+.code-line.active { background: var(--active-line); border-left-color: var(--accent); }
+.gutter {
+  color: var(--text-dim); min-width: 30px; text-align: right;
+  padding-right: 10px; user-select: none; font-size: .76rem; padding-top: 1px;
+}
+.code-text { white-space: pre; }
+.keyword { color: var(--blue); }
+.type    { color: var(--blue); }
+.var     { color: var(--lt-blue); }
+.num     { color: #b5cea8; }
+.str     { color: var(--orange); }
+.comment { color: #6a9955; font-style: italic; }
+.control { color: var(--purple); }
+.fn      { color: var(--yellow); }
+
+/* ── VIZ PANEL (middle column) ── */
+#vizPanel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* vizArea holds the two sections: norm strip + char row */
+#vizArea {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;        /* outer clip */
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 12px 20px;
+  gap: 0;
+}
+
+/* ── SECTION 1: Cleaned string strip (fixed height) ── */
+.norm-section {
+  flex-shrink: 0;
+  margin-bottom: 14px;
+}
+.norm-title {
+  font-size: .7rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin-bottom: 6px;
+}
+#normRow {
+  display: flex; gap: 4px; flex-wrap: wrap;
+}
+.norm-box {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: .82rem;
+  background: var(--panel-bg); color: var(--text-dim);
+}
+
+/* ── SECTION 2: Pointer array — scrollable horizontally, fixed vertically ── */
+.array-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.array-section-title {
+  flex-shrink: 0;
+  font-size: .7rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin-bottom: 8px;
+}
+
+/* The scroll wrapper: scrolls horizontally; vertical height is fixed */
+#charScroll {
+  flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-top: 48px;   /* room for top pointer label */
+  padding-bottom: 52px;/* room for bottom pointer label */
+  /* horizontal scrollbar appears here when string is long */
+}
+#charScroll::-webkit-scrollbar { height: 6px; }
+#charScroll::-webkit-scrollbar-track { background: var(--bg); }
+#charScroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* The actual row — relative so pointers can be absolute inside it */
+#charRow {
+  position: relative;
+  display: inline-flex;   /* shrink-wraps to content width */
+  gap: 6px;
+  min-width: max-content;
+}
+
+/* char box */
+.char-box {
+  flex-shrink: 0;
+  width: 46px; height: 46px;
+  border: 2px solid var(--border); border-radius: 6px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: 1rem;
+  background: var(--panel-bg);
+  transition: border-color .3s, background .3s;
+}
+.char-box .char-val { line-height: 1; }
+.char-box .idx-label { font-size: .58rem; color: var(--text-dim); margin-top: 3px; }
+
+/* states */
+.char-box.left-ptr  { border-color: var(--red);         background: rgba(244,71,71,.15); }
+.char-box.right-ptr { border-color: var(--pointer-alt); background: rgba(80,250,123,.15); }
+.char-box.both-ptr  { border-color: var(--yellow);      background: rgba(220,220,170,.15); }
+.char-box.matched   { border-color: var(--green);        background: rgba(78,201,176,.18); }
+.char-box.mismatch  { border-color: var(--red);          background: rgba(244,71,71,.28); animation: shake .3s ease; }
+
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  75%{transform:translateX(5px)}
+}
+
+/* pointer arrows — absolutely inside #charRow */
+.ptr-arrow {
+  position: absolute;
+  font-size: .75rem; font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+  transition: left .4s cubic-bezier(.25,.8,.25,1);
+  white-space: nowrap;
+  width: 46px;
+}
+.ptr-L {
+  color: var(--red);
+  top: -46px;           /* sits above the boxes (outside #charRow, inside padding-top of #charScroll) */
+}
+.ptr-R {
+  color: var(--pointer-alt);
+  bottom: -50px;        /* sits below the boxes (inside padding-bottom of #charScroll) */
+}
+
+/* status bar */
+#statusBar {
+  flex-shrink: 0;
+  background: #1a1a2e;
+  border-top: 1px solid var(--border);
+  padding: 9px 16px;
+  font-size: .82rem; color: var(--green);
+  min-height: 46px; max-height: 70px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+/* ── VARIABLES PANEL ── */
+#varPanel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+}
+.mem-section { margin-bottom: 16px; }
+.mem-label {
+  font-size: .66rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border); padding-bottom: 4px;
+}
+.var-row {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 4px 0; border-bottom: 1px solid #2d2d2d;
+}
+.var-name { font-family: var(--font-mono); font-size: .78rem; color: var(--lt-blue); }
+.var-val  {
+  font-family: var(--font-mono); font-size: .82rem;
+  color: var(--green); font-weight: 600;
+  padding: 2px 6px; border-radius: 3px;
+}
+@keyframes flash { 0%,100%{background:transparent} 50%{background:rgba(0,122,204,.35)} }
+.var-val.changed { animation: flash .5s ease; }
+
+/* result badge */
+#resultBadge {
+  display: none;
+  margin: 8px 0; padding: 9px 12px;
+  border-radius: 6px; font-size: .85rem; font-weight: 700; text-align: center;
+}
+#resultBadge.res-true  { background: rgba(78,201,176,.2);  border: 1px solid var(--green); color: var(--green); }
+#resultBadge.res-false { background: rgba(244,71,71,.2);   border: 1px solid var(--red);   color: var(--red); }
+
+/* legend / info box */
+.info-box {
+  background: #2d2d2d; border: 1px solid var(--border);
+  border-radius: 5px; padding: 8px 10px;
+  font-size: .73rem; color: var(--text-dim); line-height: 1.7;
+}
+.info-box b { color: var(--yellow); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header>
+  <span class="title">Valid Palindrome</span>
+  <span class="lc-badge">LeetCode #125</span>
+  <div class="input-group">
+    <label>Input:</label>
+    <input type="text" id="inputStr" value="A man, a plan, a canal: Panama" />
+    <button onclick="loadInput()">Load</button>
+  </div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap">
+      <span>Speed</span>
+      <input type="range" id="speed" min="1" max="100" value="50" />
+    </div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<main>
+
+  <!-- LEFT: CODE PANEL -->
+  <div class="panel">
+    <div class="panel-header">Java Code</div>
+    <div id="codePanel">
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="keyword">public boolean</span> <span class="fn">isPalindrome</span>(<span class="type">String</span> <span class="var">s</span>) {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">  <span class="comment">// Step 1: remove non-alphanumeric chars</span></span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text">  <span class="type">String</span> <span class="var">clean</span> = <span class="var">s</span>.<span class="fn">replaceAll</span>(<span class="str">"[^a-zA-Z0-9]"</span>, <span class="str">""</span>)</span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">                 .<span class="fn">toLowerCase</span>();</span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text"></span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">  <span class="comment">// Step 2: two pointers from both ends</span></span></div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text">  <span class="type">int</span> <span class="var">L</span> = <span class="num">0</span>, <span class="var">R</span> = <span class="var">clean</span>.<span class="fn">length</span>() - <span class="num">1</span>;</span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text"></span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">  <span class="control">while</span> (<span class="var">L</span> &lt; <span class="var">R</span>) {</span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">    <span class="control">if</span> (<span class="var">clean</span>.<span class="fn">charAt</span>(<span class="var">L</span>) != <span class="var">clean</span>.<span class="fn">charAt</span>(<span class="var">R</span>)) {</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">      <span class="control">return</span> <span class="keyword">false</span>; <span class="comment">// mismatch!</span></span></div>
+      <div class="code-line" id="line-12"><span class="gutter">12</span><span class="code-text">    }</span></div>
+      <div class="code-line" id="line-13"><span class="gutter">13</span><span class="code-text">    <span class="var">L</span>++;</span></div>
+      <div class="code-line" id="line-14"><span class="gutter">14</span><span class="code-text">    <span class="var">R</span>--;</span></div>
+      <div class="code-line" id="line-15"><span class="gutter">15</span><span class="code-text">  }</span></div>
+      <div class="code-line" id="line-16"><span class="gutter">16</span><span class="code-text"></span></div>
+      <div class="code-line" id="line-17"><span class="gutter">17</span><span class="code-text">  <span class="control">return</span> <span class="keyword">true</span>; <span class="comment">// all matched!</span></span></div>
+      <div class="code-line" id="line-18"><span class="gutter">18</span><span class="code-text">}</span></div>
+    </div>
+  </div>
+
+  <!-- MIDDLE: VIZ PANEL -->
+  <div class="panel" id="vizPanel">
+    <div class="panel-header">Visualization — Two Pointer on Cleaned String</div>
+    <div id="vizArea">
+
+      <!-- Section 1: Cleaned string strip -->
+      <div class="norm-section">
+        <div class="norm-title">🧹 Cleaned String (alphanumeric, lowercase)</div>
+        <div id="normRow"></div>
+      </div>
+
+      <!-- Section 2: Pointer array -->
+      <div class="array-section">
+        <div class="array-section-title">🔍 Two Pointer Comparison</div>
+        <div id="charScroll">
+          <div id="charRow">
+            <!-- char boxes injected by JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div id="statusBar">→ Loading…</div>
+  </div>
+
+  <!-- RIGHT: VARIABLES PANEL -->
+  <div class="panel">
+    <div class="panel-header">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Stack</div>
+        <div class="var-row"><span class="var-name">L</span><span class="var-val" id="var-L">—</span></div>
+        <div class="var-row"><span class="var-name">R</span><span class="var-val" id="var-R">—</span></div>
+        <div class="var-row"><span class="var-name">clean.length()</span><span class="var-val" id="var-len">—</span></div>
+        <div class="var-row"><span class="var-name">clean[L]</span><span class="var-val" id="var-cL">—</span></div>
+        <div class="var-row"><span class="var-name">clean[R]</span><span class="var-val" id="var-cR">—</span></div>
+        <div class="var-row"><span class="var-name">L &lt; R ?</span><span class="var-val" id="var-cond">—</span></div>
+        <div class="var-row"><span class="var-name">match?</span><span class="var-val" id="var-match">—</span></div>
+      </div>
+
+      <div id="resultBadge"></div>
+
+      <div class="mem-section">
+        <div class="mem-label">Legend</div>
+        <div class="info-box">
+          <span class="dot" style="background:var(--red)"></span> L pointer (left)<br>
+          <span class="dot" style="background:var(--pointer-alt)"></span> R pointer (right)<br>
+          <span class="dot" style="background:var(--yellow)"></span> L = R (same cell)<br>
+          <span class="dot" style="background:var(--green)"></span> Chars matched ✓<br>
+          <span class="dot" style="background:rgba(244,71,71,.6)"></span> Mismatch ✗
+        </div>
+      </div>
+
+      <div class="mem-section" style="margin-top:10px">
+        <div class="mem-label">Strategy</div>
+        <div class="info-box">
+          Strip spaces &amp; symbols → lowercase → compare
+          <b style="color:var(--red)">L</b> and <b style="color:var(--pointer-alt)">R</b> moving inward.
+          All match → <b style="color:var(--green)">Palindrome ✓</b>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ════════════════════════════════
+// 1. STATE
+// ════════════════════════════════
+let steps = [];
+let currentStep = 0;
+let isPlaying = false;
+let timer = null;
+let cleanStr = "";
+const CELL_W = 52; // char-box width (46) + gap (6)
+
+// ════════════════════════════════
+// 2. ALGORITHM SIMULATOR
+// ════════════════════════════════
+function generateSteps(raw) {
+  const history = [];
+
+  function snap(line, desc, L, R, phase, cL, cR, cond, match) {
+    history.push({ line, desc, L: L ?? -1, R: R ?? -1, phase: phase || '', cL: cL ?? '—', cR: cR ?? '—', cond: cond ?? '—', match: match ?? '—' });
+  }
+
+  snap(3, 'Step 1: Remove all non-alphanumeric characters (spaces, commas, colons…).', -1, -1, 'norm');
+  snap(4, 'Step 2: Convert all letters to lowercase — makes comparison case-insensitive.', -1, -1, 'norm');
+
+  const clean = raw.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  cleanStr = clean;
+  const n = clean.length;
+
+  if (n === 0) {
+    snap(17, 'Cleaned string is empty — empty string is a palindrome by definition. Return true.', -1, -1, 'done', '—', '—', '—', 'true');
+    return history;
+  }
+
+  snap(7, `Initialize L = 0 and R = ${n - 1}. L points to the leftmost char '${clean[0]}', R to the rightmost '${clean[n-1]}'.`,
+    0, n - 1, 'init', clean[0], clean[n - 1], `0 < ${n - 1} → true`, '—');
+
+  let L = 0, R = n - 1;
+
+  while (L < R) {
+    snap(9, `Loop check: L=${L} < R=${R} → true. Keep comparing.`,
+      L, R, 'check', clean[L], clean[R], `${L} < ${R} → true`, '—');
+
+    const cL = clean[L], cR = clean[R];
+    snap(10, `Compare clean[${L}]='${cL}' (left) vs clean[${R}]='${cR}' (right).`,
+      L, R, 'compare', cL, cR, `${L} < ${R} → true`, cL === cR ? '✓ Match' : '✗ Mismatch');
+
+    if (cL !== cR) {
+      snap(11, `'${cL}' ≠ '${cR}' — characters don't match! Cannot be a palindrome. Return false.`,
+        L, R, 'mismatch', cL, cR, `${L} < ${R} → true`, '✗ Mismatch');
+      return history;
+    }
+
+    snap(13, `'${cL}' === '${cR}' ✓ — matched! Move L forward: ${L} → ${L + 1}.`,
+      L + 1, R, 'matched', cL, cR, `${L} < ${R} → true`, '✓ Match');
+    L++;
+
+    snap(14, `Move R backward: ${R} → ${R - 1}.`,
+      L, R - 1, 'move', L < n ? clean[L] : '—', R - 1 >= 0 ? clean[R - 1] : '—', `${L} < ${R} → true`, '✓');
+    R--;
+  }
+
+  snap(9, `Loop check: L=${L} < R=${R} → false. Pointers crossed — done!`,
+    L, R, 'done-check', L < n ? clean[L] : '—', R >= 0 ? clean[R] : '—', `${L} < ${R} → false`, '—');
+  snap(17, 'All characters matched from both ends. This is a valid palindrome! Return true.',
+    L, R, 'done', '—', '—', `${L} < ${R} → false`, 'true');
+
+  return history;
+}
+
+// ════════════════════════════════
+// 3. BUILD DOM
+// ════════════════════════════════
+function buildNormRow(clean) {
+  const row = document.getElementById('normRow');
+  row.innerHTML = '';
+  for (const ch of clean) {
+    const b = document.createElement('div');
+    b.className = 'norm-box';
+    b.textContent = ch;
+    row.appendChild(b);
+  }
+}
+
+function buildCharRow(clean) {
+  const row = document.getElementById('charRow');
+  row.innerHTML = '';
+
+  // Set explicit width so pointers can be absolute inside
+  const totalW = clean.length * CELL_W - 6; // subtract last gap
+  row.style.width = totalW + 'px';
+
+  for (let i = 0; i < clean.length; i++) {
+    const box = document.createElement('div');
+    box.className = 'char-box';
+    box.id = 'box-' + i;
+    box.innerHTML = `<span class="char-val">${clean[i]}</span><span class="idx-label">${i}</span>`;
+    row.appendChild(box);
+  }
+
+  // L pointer (top)
+  const pL = document.createElement('div');
+  pL.id = 'ptrL';
+  pL.className = 'ptr-arrow ptr-L';
+  pL.innerHTML = '▼<br>L';
+  row.appendChild(pL);
+
+  // R pointer (bottom)
+  const pR = document.createElement('div');
+  pR.id = 'ptrR';
+  pR.className = 'ptr-arrow ptr-R';
+  pR.innerHTML = 'R<br>▲';
+  row.appendChild(pR);
+}
+
+// ════════════════════════════════
+// 4. RENDERER
+// ════════════════════════════════
+function applyStep(s) {
+  const n = cleanStr.length;
+
+  // a) Highlight code line
+  document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+  const lineEl = document.getElementById('line-' + s.line);
+  if (lineEl) {
+    lineEl.classList.add('active');
+    lineEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // b) Status + counter
+  document.getElementById('statusBar').textContent =
+    `→ Step ${currentStep + 1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent =
+    `Step ${currentStep + 1} / ${steps.length}`;
+
+  // c) Reset all char boxes
+  for (let i = 0; i < n; i++) {
+    const b = document.getElementById('box-' + i);
+    if (b) b.className = 'char-box';
+  }
+
+  // d) Move & show/hide pointers
+  const pL = document.getElementById('ptrL');
+  const pR = document.getElementById('ptrR');
+
+  if (pL) {
+    if (s.L >= 0 && s.L < n) {
+      pL.style.display = 'block';
+      pL.style.left = (s.L * CELL_W) + 'px';
+    } else {
+      pL.style.display = 'none';
+    }
+  }
+  if (pR) {
+    if (s.R >= 0 && s.R < n) {
+      pR.style.display = 'block';
+      pR.style.left = (s.R * CELL_W) + 'px';
+    } else {
+      pR.style.display = 'none';
+    }
+  }
+
+  // e) Color boxes by phase
+  const colorBox = (idx, cls) => {
+    const b = document.getElementById('box-' + idx);
+    if (b) b.className = 'char-box ' + cls;
+  };
+
+  const ph = s.phase;
+  if (ph === 'compare') {
+    if (s.L === s.R) { colorBox(s.L, 'both-ptr'); }
+    else { colorBox(s.L, 'left-ptr'); colorBox(s.R, 'right-ptr'); }
+  } else if (ph === 'matched') {
+    colorBox(s.L - 1, 'matched'); colorBox(s.R + 1, 'matched');
+    if (s.L < n) colorBox(s.L, 'left-ptr');
+    if (s.R >= 0) colorBox(s.R, 'right-ptr');
+  } else if (ph === 'mismatch') {
+    colorBox(s.L, 'mismatch'); colorBox(s.R, 'mismatch');
+  } else if (ph === 'check' || ph === 'init' || ph === 'move') {
+    if (s.L >= 0 && s.L < n) colorBox(s.L, s.L === s.R ? 'both-ptr' : 'left-ptr');
+    if (s.R >= 0 && s.R < n && s.R !== s.L) colorBox(s.R, 'right-ptr');
+  } else if (ph === 'done') {
+    // Show all as matched if true result
+    if (s.match === 'true') {
+      for (let i = 0; i < n; i++) colorBox(i, 'matched');
+    }
+  }
+
+  // f) Variables
+  updateVar('var-L',    s.L >= 0 ? s.L : '—');
+  updateVar('var-R',    s.R >= 0 ? s.R : '—');
+  updateVar('var-len',  n);
+  updateVar('var-cL',   s.cL);
+  updateVar('var-cR',   s.cR);
+  updateVar('var-cond', s.cond);
+  updateVar('var-match',s.match);
+
+  // g) Result badge
+  const badge = document.getElementById('resultBadge');
+  if (ph === 'done' && s.match === 'true') {
+    badge.style.display = 'block';
+    badge.className = 'res-true';
+    badge.textContent = '✅ isPalindrome = true';
+  } else if (ph === 'mismatch' || (ph === 'done' && s.match === 'false')) {
+    badge.style.display = 'block';
+    badge.className = 'res-false';
+    badge.textContent = '❌ isPalindrome = false';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function updateVar(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = (val === null || val === undefined) ? '—' : String(val);
+  if (el.textContent !== v) {
+    el.textContent = v;
+    el.classList.remove('changed');
+    void el.offsetWidth;
+    el.classList.add('changed');
+  }
+}
+
+// ════════════════════════════════
+// 5. CONTROLS
+// ════════════════════════════════
+function nextStep() {
+  if (currentStep < steps.length - 1) { currentStep++; applyStep(steps[currentStep]); updateBtns(); }
+  else stopPlay();
+}
+function prevStep() {
+  if (currentStep > 0) { currentStep--; applyStep(steps[currentStep]); updateBtns(); }
+}
+function togglePlay() { isPlaying ? stopPlay() : startPlay(); }
+function startPlay() {
+  if (currentStep === steps.length - 1) currentStep = 0;
+  isPlaying = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  tick();
+}
+function stopPlay() {
+  isPlaying = false;
+  clearTimeout(timer);
+  document.getElementById('btnPlay').textContent = '▶ Play';
+}
+function tick() {
+  if (!isPlaying) return;
+  if (currentStep < steps.length - 1) {
+    nextStep();
+    const delay = 2100 - parseInt(document.getElementById('speed').value) * 20;
+    timer = setTimeout(tick, Math.max(200, delay));
+  } else stopPlay();
+}
+function updateBtns() {
+  document.getElementById('btnPrev').disabled = currentStep === 0;
+  document.getElementById('btnNext').disabled = currentStep === steps.length - 1;
+}
+
+// ════════════════════════════════
+// 6. INIT
+// ════════════════════════════════
+function loadInput() {
+  stopPlay();
+  const raw = document.getElementById('inputStr').value.trim() || 'race a car';
+  steps = generateSteps(raw);
+  currentStep = 0;
+  buildNormRow(cleanStr);
+  buildCharRow(cleanStr);
+  applyStep(steps[0]);
+  updateBtns();
+}
+window.addEventListener('load', loadInput);
+</script>
+</body>
+</html>

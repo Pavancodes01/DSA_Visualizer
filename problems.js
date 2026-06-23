@@ -83,5 +83,12 @@ const problems = [
         category: "Two Pointers",
         difficulty: "Medium",
         file: "problems/TrappingRainWater.html"
+    },
+    {
+        id:12,
+        title:"Valid Palindrome",
+        category: "Two Pointers",
+        difficulty: "Easy",
+        file: "problems/ValidPalindrome.html"
     }
 ];
