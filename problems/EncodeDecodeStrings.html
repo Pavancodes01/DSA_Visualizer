@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Encode and Decode Strings – Dry Run Visualizer</title>
+<style>
+:root {
+  --bg:#1e1e1e; --panel-bg:#252526; --border:#3e3e42; --text:#d4d4d4; --text-dim:#858585;
+  --accent:#007acc; --active-line:#37373d; --green:#4ec9b0; --yellow:#dcdcaa; --orange:#ce9178;
+  --purple:#c586c0; --blue:#569cd6; --lt-blue:#9cdcfe; --red:#f44747; --pointer-alt:#50fa7b;
+  --font-mono:'Consolas','Monaco','Courier New',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-ui);}
+body{display:flex;flex-direction:column;}
+header{flex-shrink:0;background:var(--panel-bg);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:48px;}
+.title{font-size:.95rem;font-weight:700;color:var(--lt-blue);white-space:nowrap;}
+.lc-badge{background:#f89f1b22;color:#f89f1b;border:1px solid #f89f1b55;border-radius:4px;padding:2px 7px;font-size:.7rem;font-weight:600;white-space:nowrap;}
+.input-group{display:flex;align-items:center;gap:6px;}
+.input-group label{font-size:.78rem;color:var(--text-dim);white-space:nowrap;}
+.input-group input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:.8rem;padding:4px 8px;border-radius:4px;width:220px;}
+.controls{display:flex;align-items:center;gap:6px;margin-left:auto;}
+button{background:#3a3d41;border:1px solid var(--border);color:var(--text);padding:5px 11px;border-radius:4px;cursor:pointer;font-size:.8rem;transition:background .2s;white-space:nowrap;}
+button:hover:not(:disabled){background:var(--accent);}
+button:disabled{opacity:.35;cursor:default;}
+#btnPlay{background:#0e639c;border-color:#007acc;}
+.speed-wrap{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--text-dim);}
+input[type=range]{width:65px;accent-color:var(--accent);}
+.step-counter{font-size:.76rem;color:var(--text-dim);white-space:nowrap;min-width:85px;text-align:right;}
+main{flex:1;min-height:0;display:grid;grid-template-columns:390px 1fr 240px;grid-template-rows:1fr;overflow:hidden;}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--border);min-height:0;overflow:hidden;}
+.panel:last-child{border-right:none;}
+.panel-header{flex-shrink:0;background:#2d2d2d;border-bottom:1px solid var(--border);padding:5px 12px;font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+#codePanel{flex:1;min-height:0;overflow-y:auto;padding:6px 0;}
+.code-line{display:flex;align-items:flex-start;padding:1px 8px 1px 0;line-height:1.6;font-family:var(--font-mono);font-size:.74rem;border-left:3px solid transparent;transition:background .2s,border-color .2s;}
+.code-line.active{background:var(--active-line);border-left-color:var(--accent);}
+.gutter{color:var(--text-dim);min-width:30px;text-align:right;padding-right:10px;user-select:none;font-size:.72rem;padding-top:1px;}
+.code-text{white-space:pre;}
+.keyword,.type{color:var(--blue);} .var{color:var(--lt-blue);} .num{color:#b5cea8;} .str{color:var(--orange);}
+.comment{color:#6a9955;font-style:italic;} .control{color:var(--purple);} .fn{color:var(--yellow);}
+.code-sep{padding:4px 12px;font-size:.66rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;background:#2d2d2d;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+#vizPanel{display:flex;flex-direction:column;min-height:0;}
+#vizArea{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:16px 20px 12px;gap:16px;}
+.viz-sub-title{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+#wordRow{display:flex;gap:8px;flex-wrap:wrap;}
+.word-box{padding:6px 10px;border:2px solid var(--border);border-radius:6px;font-family:var(--font-mono);font-size:.85rem;background:var(--panel-bg);transition:border-color .3s,background .3s,transform .2s;}
+.word-box.current{border-color:var(--accent);background:rgba(0,122,204,.18);transform:translateY(-3px);}
+.word-box.done{border-color:var(--green);opacity:.75;}
+#encStream{display:flex;flex-wrap:wrap;gap:3px;font-family:var(--font-mono);}
+.tok{padding:5px 8px;border-radius:5px;font-size:.85rem;font-weight:700;border:1px solid var(--border);background:var(--panel-bg);animation:pop .3s ease;}
+.tok-len{color:var(--yellow);border-color:var(--yellow);background:rgba(220,220,170,.12);}
+.tok-hash{color:var(--red);border-color:var(--red);background:rgba(244,71,71,.12);}
+.tok-word{color:var(--green);border-color:var(--green);background:rgba(78,201,176,.12);}
+.tok.reading{box-shadow:0 0 0 2px var(--accent);}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+#decStream{display:flex;flex-wrap:wrap;gap:8px;}
+.dec-word{padding:6px 10px;border:2px solid var(--green);border-radius:6px;font-family:var(--font-mono);font-size:.85rem;background:rgba(78,201,176,.1);color:var(--green);animation:pop .3s ease;}
+#statusBar{flex-shrink:0;background:#1a1a2e;border-top:1px solid var(--border);padding:9px 16px;font-size:.82rem;color:var(--green);min-height:46px;max-height:70px;overflow-y:auto;line-height:1.5;}
+#varPanel{flex:1;min-height:0;overflow-y:auto;padding:12px;}
+.mem-section{margin-bottom:16px;}
+.mem-label{font-size:.66rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.var-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #2d2d2d;}
+.var-name{font-family:var(--font-mono);font-size:.74rem;color:var(--lt-blue);}
+.var-val{font-family:var(--font-mono);font-size:.8rem;color:var(--green);font-weight:600;padding:2px 6px;border-radius:3px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(0,122,204,.35)}}
+.var-val.changed{animation:flash .5s ease;}
+.info-box{background:#2d2d2d;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-size:.72rem;color:var(--text-dim);line-height:1.7;}
+.info-box b{color:var(--yellow);}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle;}
+</style>
+</head>
+<body>
+<header>
+  <span class="title">Encode and Decode Strings</span>
+  <span class="lc-badge">LeetCode #271</span>
+  <div class="input-group"><label>words:</label><input type="text" id="inputStr" value="neet,code,love,you" /><button onclick="loadInput()">Load</button></div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap"><span>Speed</span><input type="range" id="speed" min="1" max="100" value="50" /></div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+<main>
+  <div class="panel">
+    <div class="panel-header">Java Code — length + '#' delimiter</div>
+    <div id="codePanel">
+      <div class="code-sep">encode(List&lt;String&gt;) → String</div>
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="type">String</span> <span class="fn">encode</span>(<span class="type">List</span>&lt;<span class="type">String</span>&gt; <span class="var">strs</span>) {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">  <span class="type">StringBuilder</span> <span class="var">sb</span> = <span class="keyword">new</span> <span class="fn">StringBuilder</span>();</span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text">  <span class="control">for</span> (<span class="type">String</span> <span class="var">w</span> : <span class="var">strs</span>)</span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">    <span class="var">sb</span>.<span class="fn">append</span>(<span class="var">w</span>.<span class="fn">length</span>()).<span class="fn">append</span>(<span class="str">'#'</span>).<span class="fn">append</span>(<span class="var">w</span>);</span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text">  <span class="control">return</span> <span class="var">sb</span>.<span class="fn">toString</span>();</span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">}</span></div>
+      <div class="code-sep">decode(String) → List&lt;String&gt;</div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text"><span class="type">List</span>&lt;<span class="type">String</span>&gt; <span class="fn">decode</span>(<span class="type">String</span> <span class="var">s</span>) {</span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text">  <span class="type">List</span>&lt;<span class="type">String</span>&gt; <span class="var">res</span> = <span class="keyword">new</span> <span class="fn">ArrayList</span>&lt;&gt;();</span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">  <span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>;</span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">  <span class="control">while</span> (<span class="var">i</span> &lt; <span class="var">s</span>.<span class="fn">length</span>()) {</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">    <span class="type">int</span> <span class="var">j</span> = <span class="var">i</span>;</span></div>
+      <div class="code-line" id="line-12"><span class="gutter">12</span><span class="code-text">    <span class="control">while</span> (<span class="var">s</span>.<span class="fn">charAt</span>(<span class="var">j</span>) != <span class="str">'#'</span>) <span class="var">j</span>++;</span></div>
+      <div class="code-line" id="line-13"><span class="gutter">13</span><span class="code-text">    <span class="type">int</span> <span class="var">len</span> = <span class="type">Integer</span>.<span class="fn">parseInt</span>(<span class="var">s</span>.<span class="fn">substring</span>(<span class="var">i</span>, <span class="var">j</span>));</span></div>
+      <div class="code-line" id="line-14"><span class="gutter">14</span><span class="code-text">    <span class="var">res</span>.<span class="fn">add</span>(<span class="var">s</span>.<span class="fn">substring</span>(<span class="var">j</span>+<span class="num">1</span>, <span class="var">j</span>+<span class="num">1</span>+<span class="var">len</span>));</span></div>
+      <div class="code-line" id="line-15"><span class="gutter">15</span><span class="code-text">    <span class="var">i</span> = <span class="var">j</span>+<span class="num">1</span>+<span class="var">len</span>;</span></div>
+      <div class="code-line" id="line-16"><span class="gutter">16</span><span class="code-text">  }</span></div>
+      <div class="code-line" id="line-17"><span class="gutter">17</span><span class="code-text">  <span class="control">return</span> <span class="var">res</span>;</span></div>
+      <div class="code-line" id="line-18"><span class="gutter">18</span><span class="code-text">}</span></div>
+    </div>
+  </div>
+  <div class="panel" id="vizPanel">
+    <div class="panel-header">Visualization — Encode then Decode</div>
+    <div id="vizArea">
+      <div><div class="viz-sub-title">📝 Original Words</div><div id="wordRow"></div></div>
+      <div><div class="viz-sub-title">📦 Encoded Stream (len # word …)</div><div id="encStream"></div></div>
+      <div><div class="viz-sub-title">📤 Decoded Words</div><div id="decStream"></div></div>
+    </div>
+    <div id="statusBar">→ Loading…</div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Encode</div>
+        <div class="var-row"><span class="var-name">w</span><span class="var-val" id="var-w">—</span></div>
+        <div class="var-row"><span class="var-name">w.length()</span><span class="var-val" id="var-wl">—</span></div>
+      </div>
+      <div class="mem-section">
+        <div class="mem-label">Decode</div>
+        <div class="var-row"><span class="var-name">i</span><span class="var-val" id="var-i">—</span></div>
+        <div class="var-row"><span class="var-name">j (finds #)</span><span class="var-val" id="var-j">—</span></div>
+        <div class="var-row"><span class="var-name">len</span><span class="var-val" id="var-len">—</span></div>
+        <div class="var-row"><span class="var-name">extracted</span><span class="var-val" id="var-ex">—</span></div>
+      </div>
+      <div class="mem-section" style="margin-top:6px">
+        <div class="mem-label">Why length + #?</div>
+        <div class="info-box">Any delimiter alone fails if it appears inside a word. Prefixing the <b>length</b> tells the decoder exactly how many chars to read, so words can contain <b>any</b> character — even '#'.</div>
+      </div>
+      <div class="mem-section">
+        <div class="mem-label">Legend</div>
+        <div class="info-box">
+          <span class="dot" style="background:var(--yellow)"></span> length<br>
+          <span class="dot" style="background:var(--red)"></span> '#' separator<br>
+          <span class="dot" style="background:var(--green)"></span> word payload
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+let steps=[],currentStep=0,isPlaying=false,timer=null,words=[];
+function generateSteps(arr){
+  const h=[];
+  const snap=(line,desc,e)=>h.push(Object.assign({line,desc,phase:'enc',wi:-1,w:'—',wl:'—',tokens:[],i:-1,j:-1,len:'—',ex:'—',decoded:[],readIdx:-1},e||{}));
+  // ENCODE
+  snap(2,'ENCODE: start with an empty StringBuilder.',{phase:'enc',tokens:[]});
+  const tokens=[]; // {type,text}
+  for(let wi=0;wi<arr.length;wi++){
+    const w=arr[wi];
+    snap(3,`Take word w = "${w}".`,{phase:'enc',wi,w,wl:w.length,tokens:tokens.slice()});
+    tokens.push({type:'len',text:String(w.length)});
+    tokens.push({type:'hash',text:'#'});
+    tokens.push({type:'word',text:w});
+    snap(4,`Append length ${w.length}, then '#', then the word → "${w.length}#${w}".`,{phase:'enc',wi,w,wl:w.length,tokens:tokens.slice()});
+  }
+  const encoded=tokens.map(t=>t.text).join('');
+  snap(5,`ENCODE done. Encoded string = "${encoded}". Now transmit / decode it.`,{phase:'enc',tokens:tokens.slice()});
+  // DECODE — operate on the raw encoded string
+  const s=encoded;
+  snap(9,'DECODE: res = [], i = 0. Read the stream left to right.',{phase:'dec',tokens:tokens.slice(),i:0,decoded:[]});
+  let i=0; const decoded=[];
+  while(i<s.length){
+    snap(10,`Outer loop: i=${i} < ${s.length} → decode next word.`,{phase:'dec',tokens:tokens.slice(),i,decoded:decoded.slice()});
+    let j=i;
+    snap(11,`j = i = ${i}. Scan forward to find the '#'.`,{phase:'dec',tokens:tokens.slice(),i,j,decoded:decoded.slice(),readIdx:i});
+    while(s[j]!=='#'){j++;}
+    snap(12,`Found '#' at index ${j}. Digits s[${i}..${j}) = "${s.substring(i,j)}" encode the length.`,{phase:'dec',tokens:tokens.slice(),i,j,decoded:decoded.slice(),readIdx:i});
+    const len=parseInt(s.substring(i,j));
+    snap(13,`len = ${len}.`,{phase:'dec',tokens:tokens.slice(),i,j,len,decoded:decoded.slice()});
+    const word=s.substring(j+1,j+1+len);
+    decoded.push(word);
+    snap(14,`Read ${len} chars after '#' → "${word}". Add to res.`,{phase:'dec',tokens:tokens.slice(),i,j,len,ex:word,decoded:decoded.slice()});
+    i=j+1+len;
+    snap(15,`Advance i to ${i} (past this word). Continue.`,{phase:'dec',tokens:tokens.slice(),i,j,len,decoded:decoded.slice()});
+  }
+  snap(17,`DECODE done. Recovered ${decoded.length} words: [${decoded.map(w=>'"'+w+'"').join(', ')}].`,{phase:'dec',tokens:tokens.slice(),i,decoded:decoded.slice()});
+  return h;
+}
+function buildWordRow(){const row=document.getElementById('wordRow');row.innerHTML='';words.forEach((w,i)=>{const b=document.createElement('div');b.className='word-box';b.id='w-'+i;b.textContent='"'+w+'"';row.appendChild(b);});}
+function applyStep(s){
+  document.querySelectorAll('.code-line').forEach(el=>el.classList.remove('active'));
+  const l=document.getElementById('line-'+s.line); if(l){l.classList.add('active');l.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  document.getElementById('statusBar').textContent=`→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent=`Step ${currentStep+1} / ${steps.length}`;
+  words.forEach((w,i)=>{const b=document.getElementById('w-'+i);if(b){b.className='word-box';if(s.phase==='enc'){if(i<s.wi)b.classList.add('done');if(i===s.wi)b.classList.add('current');}else b.classList.add('done');}});
+  // encoded stream with char-index mapping for read highlight
+  const es=document.getElementById('encStream'); es.innerHTML='';
+  let charPos=0;
+  s.tokens.forEach(t=>{
+    const start=charPos, end=charPos+t.text.length;
+    const highlight=(s.phase==='dec'&&s.readIdx>=0&&s.readIdx>=start&&s.readIdx<end);
+    const d=document.createElement('div'); d.className='tok tok-'+t.type+(highlight?' reading':''); d.textContent=t.text; es.appendChild(d);
+    charPos=end;
+  });
+  const ds=document.getElementById('decStream'); ds.innerHTML='';
+  s.decoded.forEach(w=>{const d=document.createElement('div');d.className='dec-word';d.textContent='"'+w+'"';ds.appendChild(d);});
+  updateVar('var-w',s.w); updateVar('var-wl',s.wl);
+  updateVar('var-i',s.i>=0?s.i:'—'); updateVar('var-j',s.j>=0?s.j:'—'); updateVar('var-len',s.len); updateVar('var-ex',s.ex);
+}
+function updateVar(id,val){const el=document.getElementById(id);if(!el)return;const v=(val===null||val===undefined)?'—':String(val);if(el.textContent!==v){el.textContent=v;el.classList.remove('changed');void el.offsetWidth;el.classList.add('changed');}}
+function nextStep(){if(currentStep<steps.length-1){currentStep++;applyStep(steps[currentStep]);updateBtns();}else stopPlay();}
+function prevStep(){if(currentStep>0){currentStep--;applyStep(steps[currentStep]);updateBtns();}}
+function togglePlay(){isPlaying?stopPlay():startPlay();}
+function startPlay(){if(currentStep===steps.length-1)currentStep=0;isPlaying=true;document.getElementById('btnPlay').textContent='⏸ Pause';tick();}
+function stopPlay(){isPlaying=false;clearTimeout(timer);document.getElementById('btnPlay').textContent='▶ Play';}
+function tick(){if(!isPlaying)return;if(currentStep<steps.length-1){nextStep();const d=2100-parseInt(document.getElementById('speed').value)*20;timer=setTimeout(tick,Math.max(200,d));}else stopPlay();}
+function updateBtns(){document.getElementById('btnPrev').disabled=currentStep===0;document.getElementById('btnNext').disabled=currentStep===steps.length-1;}
+function loadInput(){
+  stopPlay();
+  words=(document.getElementById('inputStr').value||'').split(',').map(w=>w.trim()).filter(w=>w.length);
+  if(!words.length)words=['neet','code','love','you'];
+  document.getElementById('inputStr').value=words.join(',');
+  steps=generateSteps(words); currentStep=0; buildWordRow(); applyStep(steps[0]); updateBtns();
+}
+window.addEventListener('load',loadInput);
+</script>
+</body>
+</html>

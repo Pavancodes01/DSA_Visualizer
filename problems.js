@@ -97,5 +97,82 @@ const problems = [
         category: "String",
         difficulty: "Easy",
         file: "problems/LongestCommonPrefix.html"
+    },
+    {
+        id:14,
+        title:"Fizz Buzz (#412)",
+        category: "String",
+        difficulty: "Easy",
+        file: "problems/FizzBuzz.html"
+    },
+    {
+        id:15,
+        title:"Roman to Integer (#13)",
+        category: "String",
+        difficulty: "Easy",
+        file: "problems/RomanToInteger.html"
+    },
+    {
+        id:16,
+        title:"Valid Anagram (#242)",
+        category: "String",
+        difficulty: "Easy",
+        file: "problems/ValidAnagram.html"
+    },
+    {
+        id:17,
+        title:"Group Anagrams (#49)",
+        category: "String",
+        difficulty: "Medium",
+        file: "problems/GroupAnagrams.html"
+    },
+    {
+        id:18,
+        title:"Longest Repeating Character Replacement (#424)",
+        category: "String",
+        difficulty: "Medium",
+        file: "problems/LongestRepeatingCharacterReplacement.html"
+    },
+    {
+        id:19,
+        title:"Encode and Decode Strings (#271)",
+        category: "String",
+        difficulty: "Medium",
+        file: "problems/EncodeDecodeStrings.html"
+    },
+    {
+        id:20,
+        title:"Longest Palindromic Substring (#5)",
+        category: "String",
+        difficulty: "Medium",
+        file: "problems/LongestPalindromicSubstring.html"
+    },
+    {
+        id:21,
+        title:"Palindromic Substrings (#647)",
+        category: "String",
+        difficulty: "Medium",
+        file: "problems/PalindromicSubstrings.html"
+    },
+    {
+        id:22,
+        title:"Minimum Window Substring (#76)",
+        category: "String",
+        difficulty: "Hard",
+        file: "problems/MinimumWindowSubstring.html"
+    },
+    {
+        id:23,
+        title:"Regular Expression Matching (#10)",
+        category: "String",
+        difficulty: "Hard",
+        file: "problems/RegularExpressionMatching.html"
+    },
+    {
+        id:24,
+        title:"Text Justification (#68)",
+        category: "String",
+        difficulty: "Hard",
+        file: "problems/TextJustification.html"
     }
 ];

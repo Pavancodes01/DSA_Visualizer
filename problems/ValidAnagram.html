@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Valid Anagram – Dry Run Visualizer</title>
+<style>
+:root {
+  --bg:#1e1e1e; --panel-bg:#252526; --border:#3e3e42; --text:#d4d4d4; --text-dim:#858585;
+  --accent:#007acc; --active-line:#37373d; --green:#4ec9b0; --yellow:#dcdcaa; --orange:#ce9178;
+  --purple:#c586c0; --blue:#569cd6; --lt-blue:#9cdcfe; --red:#f44747; --pointer-alt:#50fa7b;
+  --font-mono:'Consolas','Monaco','Courier New',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-ui);}
+body{display:flex;flex-direction:column;}
+header{flex-shrink:0;background:var(--panel-bg);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:48px;}
+.title{font-size:.95rem;font-weight:700;color:var(--lt-blue);white-space:nowrap;}
+.lc-badge{background:#f89f1b22;color:#f89f1b;border:1px solid #f89f1b55;border-radius:4px;padding:2px 7px;font-size:.7rem;font-weight:600;white-space:nowrap;}
+.input-group{display:flex;align-items:center;gap:6px;}
+.input-group label{font-size:.78rem;color:var(--text-dim);white-space:nowrap;}
+.input-group input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:.8rem;padding:4px 8px;border-radius:4px;width:110px;}
+.controls{display:flex;align-items:center;gap:6px;margin-left:auto;}
+button{background:#3a3d41;border:1px solid var(--border);color:var(--text);padding:5px 11px;border-radius:4px;cursor:pointer;font-size:.8rem;transition:background .2s;white-space:nowrap;}
+button:hover:not(:disabled){background:var(--accent);}
+button:disabled{opacity:.35;cursor:default;}
+#btnPlay{background:#0e639c;border-color:#007acc;}
+.speed-wrap{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--text-dim);}
+input[type=range]{width:65px;accent-color:var(--accent);}
+.step-counter{font-size:.76rem;color:var(--text-dim);white-space:nowrap;min-width:85px;text-align:right;}
+main{flex:1;min-height:0;display:grid;grid-template-columns:380px 1fr 240px;grid-template-rows:1fr;overflow:hidden;}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--border);min-height:0;overflow:hidden;}
+.panel:last-child{border-right:none;}
+.panel-header{flex-shrink:0;background:#2d2d2d;border-bottom:1px solid var(--border);padding:5px 12px;font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+#codePanel{flex:1;min-height:0;overflow-y:auto;padding:6px 0;}
+.code-line{display:flex;align-items:flex-start;padding:1px 8px 1px 0;line-height:1.7;font-family:var(--font-mono);font-size:.76rem;border-left:3px solid transparent;transition:background .2s,border-color .2s;}
+.code-line.active{background:var(--active-line);border-left-color:var(--accent);}
+.gutter{color:var(--text-dim);min-width:30px;text-align:right;padding-right:10px;user-select:none;font-size:.74rem;padding-top:1px;}
+.code-text{white-space:pre;}
+.keyword,.type{color:var(--blue);} .var{color:var(--lt-blue);} .num{color:#b5cea8;} .str{color:var(--orange);}
+.comment{color:#6a9955;font-style:italic;} .control{color:var(--purple);} .fn{color:var(--yellow);}
+#vizPanel{display:flex;flex-direction:column;min-height:0;}
+#vizArea{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:16px 20px 12px;gap:16px;}
+.viz-sub-title{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.str-line{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}
+.str-line .lbl{font-family:var(--font-mono);font-size:.74rem;min-width:54px;color:var(--text-dim);}
+.ch-box{width:32px;height:32px;border:2px solid var(--border);border-radius:5px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;font-size:.9rem;background:var(--panel-bg);transition:border-color .3s,background .3s,transform .2s;}
+.ch-box.active-s{border-color:var(--green);background:rgba(78,201,176,.2);transform:translateY(-3px);}
+.ch-box.active-t{border-color:var(--red);background:rgba(244,71,71,.2);transform:translateY(-3px);}
+.ch-box.done{opacity:.45;}
+#countGrid{display:grid;grid-template-columns:repeat(13,1fr);gap:4px;}
+.cnt-cell{border:1px solid var(--border);border-radius:4px;background:var(--panel-bg);text-align:center;padding:3px 0;font-family:var(--font-mono);transition:border-color .3s,background .3s;}
+.cnt-cell .letter{font-size:.62rem;color:var(--text-dim);display:block;}
+.cnt-cell .cval{font-size:.85rem;font-weight:700;color:var(--text);}
+.cnt-cell.pos .cval{color:var(--green);}
+.cnt-cell.neg{border-color:var(--red);}
+.cnt-cell.neg .cval{color:var(--red);}
+.cnt-cell.hot{border-color:var(--accent);background:rgba(0,122,204,.16);}
+.cnt-cell.zero .cval{color:var(--text-dim);}
+#statusBar{flex-shrink:0;background:#1a1a2e;border-top:1px solid var(--border);padding:9px 16px;font-size:.82rem;color:var(--green);min-height:46px;max-height:70px;overflow-y:auto;line-height:1.5;}
+#varPanel{flex:1;min-height:0;overflow-y:auto;padding:12px;}
+.mem-section{margin-bottom:16px;}
+.mem-label{font-size:.66rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.var-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #2d2d2d;}
+.var-name{font-family:var(--font-mono);font-size:.76rem;color:var(--lt-blue);}
+.var-val{font-family:var(--font-mono);font-size:.8rem;color:var(--green);font-weight:600;padding:2px 6px;border-radius:3px;}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(0,122,204,.35)}}
+.var-val.changed{animation:flash .5s ease;}
+#resultBadge{display:none;margin:8px 0;padding:9px 12px;border-radius:6px;font-size:.85rem;font-weight:700;text-align:center;}
+#resultBadge.res-true{background:rgba(78,201,176,.2);border:1px solid var(--green);color:var(--green);}
+#resultBadge.res-false{background:rgba(244,71,71,.2);border:1px solid var(--red);color:var(--red);}
+.info-box{background:#2d2d2d;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-size:.72rem;color:var(--text-dim);line-height:1.7;}
+.info-box b{color:var(--yellow);}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle;}
+</style>
+</head>
+<body>
+<header>
+  <span class="title">Valid Anagram</span>
+  <span class="lc-badge">LeetCode #242</span>
+  <div class="input-group"><label>s:</label><input type="text" id="inputS" value="anagram" />
+    <label>t:</label><input type="text" id="inputT" value="nagaram" /><button onclick="loadInput()">Load</button></div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap"><span>Speed</span><input type="range" id="speed" min="1" max="100" value="50" /></div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+<main>
+  <div class="panel">
+    <div class="panel-header">Java Code — Frequency Count</div>
+    <div id="codePanel">
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="keyword">public</span> <span class="type">boolean</span> <span class="fn">isAnagram</span>(<span class="type">String</span> <span class="var">s</span>, <span class="type">String</span> <span class="var">t</span>) {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">  <span class="control">if</span> (<span class="var">s</span>.<span class="fn">length</span>() != <span class="var">t</span>.<span class="fn">length</span>()) <span class="control">return</span> <span class="keyword">false</span>;</span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text">  <span class="type">int</span>[] <span class="var">count</span> = <span class="keyword">new</span> <span class="type">int</span>[<span class="num">26</span>];</span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">  <span class="control">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">s</span>.<span class="fn">length</span>(); <span class="var">i</span>++) {</span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text">    <span class="var">count</span>[<span class="var">s</span>.<span class="fn">charAt</span>(<span class="var">i</span>) - <span class="str">'a'</span>]++;</span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">    <span class="var">count</span>[<span class="var">t</span>.<span class="fn">charAt</span>(<span class="var">i</span>) - <span class="str">'a'</span>]--;</span></div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text">  }</span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text">  <span class="control">for</span> (<span class="type">int</span> <span class="var">v</span> : <span class="var">count</span>)</span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">    <span class="control">if</span> (<span class="var">v</span> != <span class="num">0</span>) <span class="control">return</span> <span class="keyword">false</span>;</span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">  <span class="control">return</span> <span class="keyword">true</span>;</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">}</span></div>
+    </div>
+  </div>
+  <div class="panel" id="vizPanel">
+    <div class="panel-header">Visualization — count[26]: +s, −t</div>
+    <div id="vizArea">
+      <div>
+        <div class="str-line"><span class="lbl">s (+1)</span><span id="rowS" style="display:flex;gap:4px;flex-wrap:wrap"></span></div>
+        <div class="str-line"><span class="lbl">t (−1)</span><span id="rowT" style="display:flex;gap:4px;flex-wrap:wrap"></span></div>
+      </div>
+      <div><div class="viz-sub-title">🔢 count[] — must all be 0 to be an anagram</div><div id="countGrid"></div></div>
+    </div>
+    <div id="statusBar">→ Loading…</div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Stack</div>
+        <div class="var-row"><span class="var-name">i</span><span class="var-val" id="var-i">—</span></div>
+        <div class="var-row"><span class="var-name">s[i]</span><span class="var-val" id="var-si">—</span></div>
+        <div class="var-row"><span class="var-name">t[i]</span><span class="var-val" id="var-ti">—</span></div>
+        <div class="var-row"><span class="var-name">len match?</span><span class="var-val" id="var-len">—</span></div>
+        <div class="var-row"><span class="var-name">nonzero found?</span><span class="var-val" id="var-nz">—</span></div>
+      </div>
+      <div id="resultBadge"></div>
+      <div class="mem-section">
+        <div class="mem-label">Legend</div>
+        <div class="info-box">
+          <span class="dot" style="background:var(--green)"></span> s char → count++<br>
+          <span class="dot" style="background:var(--red)"></span> t char → count−−<br>
+          <span class="dot" style="background:var(--accent)"></span> cell touched this step<br>
+          All zero at end → anagram ✓
+        </div>
+      </div>
+      <div class="mem-section" style="margin-top:10px">
+        <div class="mem-label">Idea</div>
+        <div class="info-box">Add for <b>s</b>, subtract for <b>t</b>. If they use the exact same letters the same number of times, every counter cancels to <b>0</b>.</div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+let steps=[],currentStep=0,isPlaying=false,timer=null,S="",T="";
+const A='a'.charCodeAt(0);
+function idx(ch){return ch.charCodeAt(0)-A;}
+function generateSteps(s,t){
+  const h=[];
+  const snap=(line,desc,e)=>h.push(Object.assign({line,desc,i:-1,si:'—',ti:'—',len:'—',nz:'—',count:new Array(26).fill(0),hot:[],result:null,scanV:-1},e||{}));
+  if(s.length!==t.length){
+    snap(2,`s.length=${s.length} ≠ t.length=${t.length} → different sizes, cannot be an anagram. Return false.`,{len:'✗ differ',result:false});
+    return h;
+  }
+  snap(2,`s.length=${s.length} == t.length=${t.length} → same size, continue.`,{len:'✓ equal'});
+  const count=new Array(26).fill(0);
+  snap(3,'Create count[26], all zeros — one slot per letter a…z.',{count:count.slice(),len:'✓ equal'});
+  for(let i=0;i<s.length;i++){
+    snap(4,`Loop: i=${i} < ${s.length} → true.`,{i,count:count.slice(),len:'✓ equal'});
+    count[idx(s[i])]++;
+    snap(5,`s[${i}]='${s[i]}' → count['${s[i]}']++ → ${count[idx(s[i])]}.`,{i,si:s[i],count:count.slice(),hot:[idx(s[i])],len:'✓ equal',phase:'plus'});
+    count[idx(t[i])]--;
+    snap(6,`t[${i}]='${t[i]}' → count['${t[i]}']-- → ${count[idx(t[i])]}.`,{i,si:s[i],ti:t[i],count:count.slice(),hot:[idx(t[i])],len:'✓ equal',phase:'minus'});
+  }
+  snap(8,'Counting done. Now verify every counter is 0.',{count:count.slice(),len:'✓ equal',i:s.length});
+  for(let v=0;v<26;v++){
+    if(count[v]!==0){
+      snap(9,`count['${String.fromCharCode(A+v)}'] = ${count[v]} ≠ 0 → letters don't cancel. Not an anagram. Return false.`,{count:count.slice(),hot:[v],scanV:v,nz:'✓ yes',len:'✓ equal',result:false});
+      return h;
+    }
+  }
+  snap(10,'Every counter is 0 → both strings use identical letter frequencies. Return true.',{count:count.slice(),nz:'✗ none',len:'✓ equal',result:true});
+  return h;
+}
+function buildStr(rowId,str){
+  const row=document.getElementById(rowId); row.innerHTML='';
+  for(let i=0;i<str.length;i++){const b=document.createElement('div');b.className='ch-box';b.id=rowId+'-'+i;b.textContent=str[i];row.appendChild(b);}
+}
+function buildGrid(){
+  const g=document.getElementById('countGrid'); g.innerHTML='';
+  for(let v=0;v<26;v++){
+    const c=document.createElement('div'); c.className='cnt-cell zero'; c.id='cnt-'+v;
+    c.innerHTML=`<span class="letter">${String.fromCharCode(A+v)}</span><span class="cval">0</span>`;
+    g.appendChild(c);
+  }
+}
+function applyStep(s){
+  document.querySelectorAll('.code-line').forEach(el=>el.classList.remove('active'));
+  const l=document.getElementById('line-'+s.line); if(l){l.classList.add('active');l.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  document.getElementById('statusBar').textContent=`→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent=`Step ${currentStep+1} / ${steps.length}`;
+  for(let i=0;i<S.length;i++){const b=document.getElementById('rowS-'+i);if(b){b.className='ch-box';if(s.i>=0&&i<s.i)b.classList.add('done');if(i===s.i&&s.phase==='plus')b.classList.add('active-s');}}
+  for(let i=0;i<T.length;i++){const b=document.getElementById('rowT-'+i);if(b){b.className='ch-box';if(s.i>=0&&i<s.i)b.classList.add('done');if(i===s.i&&s.phase==='minus')b.classList.add('active-t');}}
+  for(let v=0;v<26;v++){
+    const c=document.getElementById('cnt-'+v); if(!c)continue;
+    const val=s.count[v]; c.querySelector('.cval').textContent=val;
+    let cls='cnt-cell '; if(val>0)cls+='pos'; else if(val<0)cls+='neg'; else cls+='zero';
+    if(s.hot&&s.hot.includes(v))cls+=' hot';
+    if(s.scanV===v)cls+=' hot';
+    c.className=cls;
+  }
+  updateVar('var-i',s.i>=0?s.i:'—'); updateVar('var-si',s.si); updateVar('var-ti',s.ti);
+  updateVar('var-len',s.len); updateVar('var-nz',s.nz);
+  const badge=document.getElementById('resultBadge');
+  if(s.result===true){badge.style.display='block';badge.className='res-true';badge.textContent='✅ isAnagram = true';}
+  else if(s.result===false){badge.style.display='block';badge.className='res-false';badge.textContent='❌ isAnagram = false';}
+  else badge.style.display='none';
+}
+function updateVar(id,val){const el=document.getElementById(id);if(!el)return;const v=(val===null||val===undefined)?'—':String(val);if(el.textContent!==v){el.textContent=v;el.classList.remove('changed');void el.offsetWidth;el.classList.add('changed');}}
+function nextStep(){if(currentStep<steps.length-1){currentStep++;applyStep(steps[currentStep]);updateBtns();}else stopPlay();}
+function prevStep(){if(currentStep>0){currentStep--;applyStep(steps[currentStep]);updateBtns();}}
+function togglePlay(){isPlaying?stopPlay():startPlay();}
+function startPlay(){if(currentStep===steps.length-1)currentStep=0;isPlaying=true;document.getElementById('btnPlay').textContent='⏸ Pause';tick();}
+function stopPlay(){isPlaying=false;clearTimeout(timer);document.getElementById('btnPlay').textContent='▶ Play';}
+function tick(){if(!isPlaying)return;if(currentStep<steps.length-1){nextStep();const d=2100-parseInt(document.getElementById('speed').value)*20;timer=setTimeout(tick,Math.max(200,d));}else stopPlay();}
+function updateBtns(){document.getElementById('btnPrev').disabled=currentStep===0;document.getElementById('btnNext').disabled=currentStep===steps.length-1;}
+function loadInput(){
+  stopPlay();
+  S=(document.getElementById('inputS').value||'anagram').toLowerCase().replace(/[^a-z]/g,'');
+  T=(document.getElementById('inputT').value||'nagaram').toLowerCase().replace(/[^a-z]/g,'');
+  if(!S)S='anagram'; if(!T)T='nagaram';
+  document.getElementById('inputS').value=S; document.getElementById('inputT').value=T;
+  steps=generateSteps(S,T); currentStep=0; buildStr('rowS',S); buildStr('rowT',T); buildGrid(); applyStep(steps[0]); updateBtns();
+}
+window.addEventListener('load',loadInput);
+</script>
+</body>
+</html>

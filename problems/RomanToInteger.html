@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Roman to Integer – Dry Run Visualizer</title>
+<style>
+:root {
+  --bg:#1e1e1e; --panel-bg:#252526; --border:#3e3e42; --text:#d4d4d4; --text-dim:#858585;
+  --accent:#007acc; --active-line:#37373d; --green:#4ec9b0; --yellow:#dcdcaa; --orange:#ce9178;
+  --purple:#c586c0; --blue:#569cd6; --lt-blue:#9cdcfe; --red:#f44747; --pointer-alt:#50fa7b;
+  --font-mono:'Consolas','Monaco','Courier New',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-ui);}
+body{display:flex;flex-direction:column;}
+header{flex-shrink:0;background:var(--panel-bg);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:48px;}
+.title{font-size:.95rem;font-weight:700;color:var(--lt-blue);white-space:nowrap;}
+.lc-badge{background:#f89f1b22;color:#f89f1b;border:1px solid #f89f1b55;border-radius:4px;padding:2px 7px;font-size:.7rem;font-weight:600;white-space:nowrap;}
+.input-group{display:flex;align-items:center;gap:6px;}
+.input-group label{font-size:.78rem;color:var(--text-dim);white-space:nowrap;}
+.input-group input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:.8rem;padding:4px 8px;border-radius:4px;width:150px;}
+.controls{display:flex;align-items:center;gap:6px;margin-left:auto;}
+button{background:#3a3d41;border:1px solid var(--border);color:var(--text);padding:5px 11px;border-radius:4px;cursor:pointer;font-size:.8rem;transition:background .2s;white-space:nowrap;}
+button:hover:not(:disabled){background:var(--accent);}
+button:disabled{opacity:.35;cursor:default;}
+#btnPlay{background:#0e639c;border-color:#007acc;}
+.speed-wrap{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--text-dim);}
+input[type=range]{width:65px;accent-color:var(--accent);}
+.step-counter{font-size:.76rem;color:var(--text-dim);white-space:nowrap;min-width:85px;text-align:right;}
+main{flex:1;min-height:0;display:grid;grid-template-columns:380px 1fr 240px;grid-template-rows:1fr;overflow:hidden;}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--border);min-height:0;overflow:hidden;}
+.panel:last-child{border-right:none;}
+.panel-header{flex-shrink:0;background:#2d2d2d;border-bottom:1px solid var(--border);padding:5px 12px;font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+#codePanel{flex:1;min-height:0;overflow-y:auto;padding:6px 0;}
+.code-line{display:flex;align-items:flex-start;padding:1px 8px 1px 0;line-height:1.7;font-family:var(--font-mono);font-size:.78rem;border-left:3px solid transparent;transition:background .2s,border-color .2s;}
+.code-line.active{background:var(--active-line);border-left-color:var(--accent);}
+.gutter{color:var(--text-dim);min-width:30px;text-align:right;padding-right:10px;user-select:none;font-size:.74rem;padding-top:1px;}
+.code-text{white-space:pre;}
+.keyword,.type{color:var(--blue);} .var{color:var(--lt-blue);} .num{color:#b5cea8;} .str{color:var(--orange);}
+.comment{color:#6a9955;font-style:italic;} .control{color:var(--purple);} .fn{color:var(--yellow);}
+#vizPanel{display:flex;flex-direction:column;min-height:0;}
+#vizArea{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:16px 20px 12px;gap:18px;}
+.viz-sub-title{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+#charScroll{overflow-x:auto;padding-top:40px;padding-bottom:12px;}
+#charRow{position:relative;display:inline-flex;gap:8px;min-width:max-content;}
+.rn-box{flex-shrink:0;width:56px;height:56px;border:2px solid var(--border);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-mono);background:var(--panel-bg);transition:border-color .3s,background .3s,transform .2s;}
+.rn-box .sym{font-size:1.2rem;font-weight:700;line-height:1;}
+.rn-box .val{font-size:.6rem;color:var(--text-dim);margin-top:3px;}
+.rn-box.current{border-color:var(--accent);background:rgba(0,122,204,.18);transform:translateY(-4px);}
+.rn-box.next-larger{border-color:var(--red);background:rgba(244,71,71,.16);}
+.rn-box.added{border-color:var(--green);background:rgba(78,201,176,.14);}
+.rn-box.subtracted{border-color:var(--red);}
+.rn-box.done{opacity:.55;}
+.ptr-arrow{position:absolute;top:-34px;width:56px;text-align:center;font-size:.72rem;font-weight:700;color:var(--accent);pointer-events:none;transition:left .4s cubic-bezier(.25,.8,.25,1);}
+#totalDisplay{font-family:var(--font-mono);font-size:2rem;font-weight:700;color:var(--green);}
+.calc-line{font-family:var(--font-mono);font-size:.85rem;color:var(--text);line-height:1.9;word-break:break-word;}
+.calc-line .add{color:var(--green);} .calc-line .sub{color:var(--red);}
+#statusBar{flex-shrink:0;background:#1a1a2e;border-top:1px solid var(--border);padding:9px 16px;font-size:.82rem;color:var(--green);min-height:46px;max-height:70px;overflow-y:auto;line-height:1.5;}
+#varPanel{flex:1;min-height:0;overflow-y:auto;padding:12px;}
+.mem-section{margin-bottom:16px;}
+.mem-label{font-size:.66rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.var-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #2d2d2d;}
+.var-name{font-family:var(--font-mono);font-size:.76rem;color:var(--lt-blue);}
+.var-val{font-family:var(--font-mono);font-size:.8rem;color:var(--green);font-weight:600;padding:2px 6px;border-radius:3px;}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(0,122,204,.35)}}
+.var-val.changed{animation:flash .5s ease;}
+.info-box{background:#2d2d2d;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-size:.72rem;color:var(--text-dim);line-height:1.7;}
+.info-box b{color:var(--yellow);}
+.map-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-family:var(--font-mono);font-size:.68rem;}
+.map-grid div{background:#2d2d2d;border:1px solid var(--border);border-radius:3px;padding:3px;text-align:center;}
+</style>
+</head>
+<body>
+<header>
+  <span class="title">Roman to Integer</span>
+  <span class="lc-badge">LeetCode #13</span>
+  <div class="input-group"><label>Roman:</label><input type="text" id="inputStr" value="MCMXCIV" /><button onclick="loadInput()">Load</button></div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap"><span>Speed</span><input type="range" id="speed" min="1" max="100" value="50" /></div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+<main>
+  <div class="panel">
+    <div class="panel-header">Java Code</div>
+    <div id="codePanel">
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="keyword">public</span> <span class="type">int</span> <span class="fn">romanToInt</span>(<span class="type">String</span> <span class="var">s</span>) {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">  <span class="type">Map</span>&lt;<span class="type">Character</span>,<span class="type">Integer</span>&gt; <span class="var">m</span> = <span class="comment">/* I=1 V=5 X=10 L=50 C=100 D=500 M=1000 */</span>;</span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text">  <span class="type">int</span> <span class="var">total</span> = <span class="num">0</span>;</span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">  <span class="control">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">s</span>.<span class="fn">length</span>(); <span class="var">i</span>++) {</span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text">    <span class="type">int</span> <span class="var">cur</span> = <span class="var">m</span>.<span class="fn">get</span>(<span class="var">s</span>.<span class="fn">charAt</span>(<span class="var">i</span>));</span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">    <span class="control">if</span> (<span class="var">i</span>+<span class="num">1</span> &lt; <span class="var">s</span>.<span class="fn">length</span>() &amp;&amp; <span class="var">cur</span> &lt; <span class="var">m</span>.<span class="fn">get</span>(<span class="var">s</span>.<span class="fn">charAt</span>(<span class="var">i</span>+<span class="num">1</span>)))</span></div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text">      <span class="var">total</span> -= <span class="var">cur</span>; <span class="comment">// smaller before larger → subtract</span></span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text">    <span class="control">else</span></span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">      <span class="var">total</span> += <span class="var">cur</span>;</span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">  }</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">  <span class="control">return</span> <span class="var">total</span>;</span></div>
+      <div class="code-line" id="line-12"><span class="gutter">12</span><span class="code-text">}</span></div>
+    </div>
+  </div>
+  <div class="panel" id="vizPanel">
+    <div class="panel-header">Visualization — Left-to-Right Scan</div>
+    <div id="vizArea">
+      <div><div class="viz-sub-title">🏛️ Roman Numeral</div>
+        <div id="charScroll"><div id="charRow"></div></div>
+      </div>
+      <div><div class="viz-sub-title">➕ Running Total</div><div id="totalDisplay">0</div></div>
+      <div><div class="viz-sub-title">🧮 Calculation</div><div class="calc-line" id="calcLine">—</div></div>
+    </div>
+    <div id="statusBar">→ Loading…</div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Stack</div>
+        <div class="var-row"><span class="var-name">i</span><span class="var-val" id="var-i">—</span></div>
+        <div class="var-row"><span class="var-name">cur = s[i]</span><span class="var-val" id="var-cur">—</span></div>
+        <div class="var-row"><span class="var-name">next = s[i+1]</span><span class="var-val" id="var-next">—</span></div>
+        <div class="var-row"><span class="var-name">cur &lt; next ?</span><span class="var-val" id="var-cmp">—</span></div>
+        <div class="var-row"><span class="var-name">total</span><span class="var-val" id="var-total">0</span></div>
+      </div>
+      <div class="mem-section">
+        <div class="mem-label">Symbol Values</div>
+        <div class="map-grid">
+          <div>I=1</div><div>V=5</div><div>X=10</div><div>L=50</div>
+          <div>C=100</div><div>D=500</div><div>M=1000</div><div></div>
+        </div>
+      </div>
+      <div class="mem-section" style="margin-top:10px">
+        <div class="mem-label">Rule</div>
+        <div class="info-box">If a symbol is <b>smaller than the one after it</b> (IV, IX, XL, XC, CD, CM) → <b style="color:var(--red)">subtract</b> it. Otherwise <b style="color:var(--green)">add</b> it.</div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+let steps=[],currentStep=0,isPlaying=false,timer=null,romStr="";
+const VAL={I:1,V:5,X:10,L:50,C:100,D:500,M:1000};
+const CELL_W=64;
+function generateSteps(s){
+  const h=[];
+  const snap=(line,desc,e)=>h.push(Object.assign({line,desc,i:-1,cur:'—',next:'—',cmp:'—',total:0,phase:'',calc:''},e||{}));
+  snap(3,'Initialize total = 0.',{total:0});
+  let total=0; let calc='';
+  for(let i=0;i<s.length;i++){
+    const cur=VAL[s[i]];
+    snap(4,`Loop: i=${i} < length ${s.length} → true.`,{i,cur,total,phase:'loop',calc});
+    snap(5,`cur = value of '${s[i]}' = ${cur}.`,{i,cur,total,phase:'read',calc});
+    const hasNext=i+1<s.length;
+    const nextV=hasNext?VAL[s[i+1]]:null;
+    if(hasNext && cur<nextV){
+      snap(6,`Next is '${s[i+1]}'=${nextV}. cur ${cur} < ${nextV} → true. Subtract.`,{i,cur,next:s[i+1]+'='+nextV,cmp:`${cur} < ${nextV} → true`,total,phase:'sub-check',calc});
+      total-=cur;
+      calc+=(calc?' ':'')+`<span class="sub">- ${cur}</span>`;
+      snap(7,`total -= ${cur} → ${total}. (e.g. '${s[i]}${s[i+1]}' pattern)`,{i,cur,next:s[i+1]+'='+nextV,cmp:`${cur} < ${nextV} → true`,total,phase:'sub',calc});
+    } else {
+      const nx=hasNext?s[i+1]+'='+nextV:'(none)';
+      const cmp=hasNext?`${cur} < ${nextV} → false`:'no next';
+      snap(6,`Next is ${hasNext?"'"+s[i+1]+"'="+nextV:'nothing (last char)'}. Not smaller-before-larger → add.`,{i,cur,next:nx,cmp,total,phase:'add-check',calc});
+      total+=cur;
+      calc+=(calc?' ':'')+`<span class="add">+ ${cur}</span>`;
+      snap(9,`total += ${cur} → ${total}.`,{i,cur,next:nx,cmp,total,phase:'add',calc});
+    }
+  }
+  snap(11,`Loop finished. Return total = ${total}.`,{total,phase:'done',calc,i:s.length});
+  return h;
+}
+function buildCharRow(s){
+  const row=document.getElementById('charRow'); row.innerHTML='';
+  row.style.width=(s.length*CELL_W-8)+'px';
+  for(let i=0;i<s.length;i++){
+    const b=document.createElement('div'); b.className='rn-box'; b.id='rn-'+i;
+    b.innerHTML=`<span class="sym">${s[i]}</span><span class="val">${VAL[s[i]]}</span>`;
+    row.appendChild(b);
+  }
+  const p=document.createElement('div'); p.id='ptr'; p.className='ptr-arrow'; p.innerHTML='▼<br>i'; row.appendChild(p);
+}
+function applyStep(s){
+  document.querySelectorAll('.code-line').forEach(el=>el.classList.remove('active'));
+  const l=document.getElementById('line-'+s.line); if(l){l.classList.add('active');l.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  document.getElementById('statusBar').textContent=`→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent=`Step ${currentStep+1} / ${steps.length}`;
+  const n=romStr.length;
+  for(let i=0;i<n;i++){const b=document.getElementById('rn-'+i);if(b){b.className='rn-box';if(s.i>=0&&i<s.i)b.classList.add('done');}}
+  const p=document.getElementById('ptr');
+  if(p){ if(s.i>=0&&s.i<n){p.style.display='block';p.style.left=(s.i*CELL_W)+'px';}else p.style.display='none'; }
+  if(s.i>=0&&s.i<n){
+    const cb=document.getElementById('rn-'+s.i);
+    if(cb){
+      if(s.phase==='sub'||s.phase==='sub-check'){cb.classList.add('next-larger');const nb=document.getElementById('rn-'+(s.i+1));if(nb)nb.classList.add('current');}
+      else if(s.phase==='add'){cb.classList.add('added');}
+      else cb.classList.add('current');
+    }
+  }
+  document.getElementById('totalDisplay').textContent=s.total;
+  document.getElementById('calcLine').innerHTML=s.calc||'—';
+  updateVar('var-i',s.i>=0?s.i:'—'); updateVar('var-cur',s.cur); updateVar('var-next',s.next);
+  updateVar('var-cmp',s.cmp); updateVar('var-total',s.total);
+}
+function updateVar(id,val){const el=document.getElementById(id);if(!el)return;const v=(val===null||val===undefined)?'—':String(val);if(el.textContent!==v){el.textContent=v;el.classList.remove('changed');void el.offsetWidth;el.classList.add('changed');}}
+function nextStep(){if(currentStep<steps.length-1){currentStep++;applyStep(steps[currentStep]);updateBtns();}else stopPlay();}
+function prevStep(){if(currentStep>0){currentStep--;applyStep(steps[currentStep]);updateBtns();}}
+function togglePlay(){isPlaying?stopPlay():startPlay();}
+function startPlay(){if(currentStep===steps.length-1)currentStep=0;isPlaying=true;document.getElementById('btnPlay').textContent='⏸ Pause';tick();}
+function stopPlay(){isPlaying=false;clearTimeout(timer);document.getElementById('btnPlay').textContent='▶ Play';}
+function tick(){if(!isPlaying)return;if(currentStep<steps.length-1){nextStep();const d=2100-parseInt(document.getElementById('speed').value)*20;timer=setTimeout(tick,Math.max(200,d));}else stopPlay();}
+function updateBtns(){document.getElementById('btnPrev').disabled=currentStep===0;document.getElementById('btnNext').disabled=currentStep===steps.length-1;}
+function loadInput(){
+  stopPlay();
+  let raw=document.getElementById('inputStr').value.toUpperCase().replace(/[^IVXLCDM]/g,'');
+  if(!raw)raw='MCMXCIV'; document.getElementById('inputStr').value=raw; romStr=raw;
+  steps=generateSteps(raw); currentStep=0; buildCharRow(raw); applyStep(steps[0]); updateBtns();
+}
+window.addEventListener('load',loadInput);
+</script>
+</body>
+</html>

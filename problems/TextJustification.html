@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Text Justification – Dry Run Visualizer</title>
+<style>
+:root {
+  --bg:#1e1e1e; --panel-bg:#252526; --border:#3e3e42; --text:#d4d4d4; --text-dim:#858585;
+  --accent:#007acc; --active-line:#37373d; --green:#4ec9b0; --yellow:#dcdcaa; --orange:#ce9178;
+  --purple:#c586c0; --blue:#569cd6; --lt-blue:#9cdcfe; --red:#f44747; --pointer-alt:#50fa7b;
+  --font-mono:'Consolas','Monaco','Courier New',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-ui);}
+body{display:flex;flex-direction:column;}
+header{flex-shrink:0;background:var(--panel-bg);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:48px;}
+.title{font-size:.95rem;font-weight:700;color:var(--lt-blue);white-space:nowrap;}
+.lc-badge{background:#f89f1b22;color:#f89f1b;border:1px solid #f89f1b55;border-radius:4px;padding:2px 7px;font-size:.7rem;font-weight:600;white-space:nowrap;}
+.input-group{display:flex;align-items:center;gap:6px;}
+.input-group label{font-size:.78rem;color:var(--text-dim);white-space:nowrap;}
+.input-group input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:.8rem;padding:4px 8px;border-radius:4px;}
+#inputStr{width:250px;} #inputW{width:44px;}
+.controls{display:flex;align-items:center;gap:6px;margin-left:auto;}
+button{background:#3a3d41;border:1px solid var(--border);color:var(--text);padding:5px 11px;border-radius:4px;cursor:pointer;font-size:.8rem;transition:background .2s;white-space:nowrap;}
+button:hover:not(:disabled){background:var(--accent);}
+button:disabled{opacity:.35;cursor:default;}
+#btnPlay{background:#0e639c;border-color:#007acc;}
+.speed-wrap{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--text-dim);}
+input[type=range]{width:65px;accent-color:var(--accent);}
+.step-counter{font-size:.76rem;color:var(--text-dim);white-space:nowrap;min-width:85px;text-align:right;}
+main{flex:1;min-height:0;display:grid;grid-template-columns:400px 1fr 250px;grid-template-rows:1fr;overflow:hidden;}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--border);min-height:0;overflow:hidden;}
+.panel:last-child{border-right:none;}
+.panel-header{flex-shrink:0;background:#2d2d2d;border-bottom:1px solid var(--border);padding:5px 12px;font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+#codePanel{flex:1;min-height:0;overflow-y:auto;padding:6px 0;}
+.code-line{display:flex;align-items:flex-start;padding:1px 8px 1px 0;line-height:1.55;font-family:var(--font-mono);font-size:.72rem;border-left:3px solid transparent;transition:background .2s,border-color .2s;}
+.code-line.active{background:var(--active-line);border-left-color:var(--accent);}
+.gutter{color:var(--text-dim);min-width:28px;text-align:right;padding-right:9px;user-select:none;font-size:.7rem;padding-top:1px;}
+.code-text{white-space:pre;}
+.keyword,.type{color:var(--blue);} .var{color:var(--lt-blue);} .num{color:#b5cea8;} .str{color:var(--orange);}
+.comment{color:#6a9955;font-style:italic;} .control{color:var(--purple);} .fn{color:var(--yellow);}
+#vizPanel{display:flex;flex-direction:column;min-height:0;}
+#vizArea{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:16px 20px 12px;gap:16px;}
+.viz-sub-title{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+#wordRow{display:flex;gap:6px;flex-wrap:wrap;}
+.word-box{padding:5px 9px;border:2px solid var(--border);border-radius:5px;font-family:var(--font-mono);font-size:.82rem;background:var(--panel-bg);transition:border-color .3s,background .3s,transform .15s;}
+.word-box.inline{border-color:var(--yellow);background:rgba(220,220,170,.14);transform:translateY(-2px);}
+.word-box.candidate{border-color:var(--accent);background:rgba(0,122,204,.14);}
+.word-box.placed{border-color:var(--green);opacity:.7;}
+.ruler{font-family:var(--font-mono);font-size:.8rem;color:var(--text-dim);white-space:pre;letter-spacing:0;}
+#lines{display:flex;flex-direction:column;gap:2px;}
+.just-line{font-family:var(--font-mono);font-size:.92rem;white-space:pre;background:var(--panel-bg);border:1px solid var(--border);border-radius:4px;padding:3px 6px;letter-spacing:0;}
+.just-line.building{border-color:var(--accent);background:rgba(0,122,204,.1);}
+.just-line .sp{background:rgba(78,201,176,.18);border-radius:2px;}
+.just-line .pad{color:var(--text-dim);}
+.width-marker{border-left:2px dashed var(--red);}
+#statusBar{flex-shrink:0;background:#1a1a2e;border-top:1px solid var(--border);padding:9px 16px;font-size:.82rem;color:var(--green);min-height:46px;max-height:70px;overflow-y:auto;line-height:1.5;}
+#varPanel{flex:1;min-height:0;overflow-y:auto;padding:12px;}
+.mem-section{margin-bottom:16px;}
+.mem-label{font-size:.66rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.var-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #2d2d2d;}
+.var-name{font-family:var(--font-mono);font-size:.72rem;color:var(--lt-blue);}
+.var-val{font-family:var(--font-mono);font-size:.79rem;color:var(--green);font-weight:600;padding:2px 6px;border-radius:3px;}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(0,122,204,.35)}}
+.var-val.changed{animation:flash .5s ease;}
+.info-box{background:#2d2d2d;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-size:.71rem;color:var(--text-dim);line-height:1.7;}
+.info-box b{color:var(--yellow);}
+</style>
+</head>
+<body>
+<header>
+  <span class="title">Text Justification</span>
+  <span class="lc-badge">LeetCode #68</span>
+  <div class="input-group"><label>words:</label><input type="text" id="inputStr" value="This,is,an,example,of,text,justification." />
+    <label>W:</label><input type="text" id="inputW" value="16" /><button onclick="loadInput()">Load</button></div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap"><span>Speed</span><input type="range" id="speed" min="1" max="100" value="50" /></div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+<main>
+  <div class="panel">
+    <div class="panel-header">Java Code — Greedy Pack + Distribute</div>
+    <div id="codePanel">
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="type">List</span>&lt;<span class="type">String</span>&gt; <span class="fn">fullJustify</span>(<span class="type">String</span>[] <span class="var">words</span>, <span class="type">int</span> <span class="var">W</span>) {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">  <span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>;</span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text">  <span class="control">while</span> (<span class="var">i</span> &lt; <span class="var">words</span>.<span class="var">length</span>) {</span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">    <span class="type">int</span> <span class="var">j</span>=<span class="var">i</span>, <span class="var">len</span>=<span class="num">0</span>;</span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text">    <span class="control">while</span> (<span class="var">j</span>&lt;<span class="var">n</span> &amp;&amp; <span class="var">len</span>+<span class="var">words</span>[<span class="var">j</span>].len+(<span class="var">j</span>-<span class="var">i</span>) &lt;= <span class="var">W</span>) {</span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">      <span class="var">len</span> += <span class="var">words</span>[<span class="var">j</span>].<span class="fn">length</span>(); <span class="var">j</span>++;</span></div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text">    }</span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text">    <span class="type">int</span> <span class="var">gaps</span> = <span class="var">j</span>-<span class="var">i</span>-<span class="num">1</span>;</span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">    <span class="control">if</span> (<span class="var">j</span>==<span class="var">n</span> || <span class="var">gaps</span>==<span class="num">0</span>) {   <span class="comment">// last line / single word → left-justify</span></span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">      <span class="var">line</span> = join words with <span class="num">1</span> space, pad right to <span class="var">W</span>;</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">    } <span class="control">else</span> {                    <span class="comment">// distribute spaces evenly</span></span></div>
+      <div class="code-line" id="line-12"><span class="gutter">12</span><span class="code-text">      <span class="type">int</span> <span class="var">space</span>=(<span class="var">W</span>-<span class="var">len</span>)/<span class="var">gaps</span>, <span class="var">extra</span>=(<span class="var">W</span>-<span class="var">len</span>)%<span class="var">gaps</span>;</span></div>
+      <div class="code-line" id="line-13"><span class="gutter">13</span><span class="code-text">      <span class="comment">// first `extra` gaps get one more space</span></span></div>
+      <div class="code-line" id="line-14"><span class="gutter">14</span><span class="code-text">    }</span></div>
+      <div class="code-line" id="line-15"><span class="gutter">15</span><span class="code-text">    <span class="var">res</span>.<span class="fn">add</span>(<span class="var">line</span>); <span class="var">i</span> = <span class="var">j</span>;</span></div>
+      <div class="code-line" id="line-16"><span class="gutter">16</span><span class="code-text">  }</span></div>
+      <div class="code-line" id="line-17"><span class="gutter">17</span><span class="code-text">  <span class="control">return</span> <span class="var">res</span>;</span></div>
+      <div class="code-line" id="line-18"><span class="gutter">18</span><span class="code-text">}</span></div>
+    </div>
+  </div>
+  <div class="panel" id="vizPanel">
+    <div class="panel-header">Visualization — Pack words, then justify to width W</div>
+    <div id="vizArea">
+      <div><div class="viz-sub-title">📝 Words (yellow = current line, green = placed)</div><div id="wordRow"></div></div>
+      <div><div class="viz-sub-title">📐 Output (fixed width W — red line marks the right edge)</div>
+        <div class="ruler" id="ruler"></div>
+        <div id="lines"></div>
+      </div>
+    </div>
+    <div id="statusBar">→ Loading…</div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Stack</div>
+        <div class="var-row"><span class="var-name">i (line start)</span><span class="var-val" id="var-i">—</span></div>
+        <div class="var-row"><span class="var-name">j (line end)</span><span class="var-val" id="var-j">—</span></div>
+        <div class="var-row"><span class="var-name">len (chars)</span><span class="var-val" id="var-len">—</span></div>
+        <div class="var-row"><span class="var-name">gaps</span><span class="var-val" id="var-gaps">—</span></div>
+        <div class="var-row"><span class="var-name">space/gap</span><span class="var-val" id="var-space">—</span></div>
+        <div class="var-row"><span class="var-name">extra</span><span class="var-val" id="var-extra">—</span></div>
+        <div class="var-row"><span class="var-name">W</span><span class="var-val" id="var-W">—</span></div>
+      </div>
+      <div class="mem-section" style="margin-top:6px">
+        <div class="mem-label">The two rules</div>
+        <div class="info-box">
+          <b>Middle lines:</b> spread spaces evenly between words; left gaps get the <b>extra</b> when it doesn't divide evenly.<br><br>
+          <b>Last line + single-word lines:</b> left-justified — one space between words, padding on the right.
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+let steps=[],currentStep=0,isPlaying=false,timer=null,words=[],W=0;
+function generateSteps(arr,W){
+  const h=[];
+  const n=arr.length;
+  const snap=(line,desc,e)=>h.push(Object.assign({line,desc,i:-1,j:-1,len:'—',gaps:'—',space:'—',extra:'—',lineStart:-1,lineEnd:-1,building:'',lines:[],done:false},e||{}));
+  const out=[];
+  let i=0;
+  snap(2,'i = 0. Pack words greedily into lines of width W.',{i:0,lines:out.slice()});
+  while(i<n){
+    snap(3,`Start a new line at word i=${i} ("${arr[i]}").`,{i,lineStart:i,lines:out.slice()});
+    let j=i,len=0;
+    snap(4,`j=${i}, len=0.`,{i,j,len:0,lineStart:i,lineEnd:i,lines:out.slice()});
+    while(j<n && len+arr[j].length+(j-i)<=W){
+      const would=len+arr[j].length+(j-i);
+      snap(5,`Fit check: len ${len} + "${arr[j]}"(${arr[j].length}) + ${j-i} min-spaces = ${would} ≤ W=${W} → add "${arr[j]}".`,{i,j,len,lineStart:i,lineEnd:j,candidate:j,lines:out.slice()});
+      len+=arr[j].length; j++;
+    }
+    const failWord = j<n ? `"${arr[j]}" would overflow` : 'no more words';
+    snap(5,`Stop packing: ${failWord}. Line holds words [${i}..${j-1}].`,{i,j,len,lineStart:i,lineEnd:j-1,lines:out.slice()});
+    const gaps=j-i-1;
+    snap(8,`gaps between words = ${gaps}. Total word chars = ${len}, spaces to fill = ${W-len}.`,{i,j,len,gaps,lineStart:i,lineEnd:j-1,lines:out.slice()});
+    let lineStr;
+    if(j===n || gaps===0){
+      // left justify
+      lineStr=arr.slice(i,j).join(' ');
+      lineStr=lineStr+' '.repeat(W-lineStr.length);
+      snap(10,`${j===n?'Last line':'Single word'} → left-justify: "${arr.slice(i,j).join(' ')}" then pad right to width ${W}.`,{i,j,len,gaps,lineStart:i,lineEnd:j-1,building:lineStr,lines:out.slice()});
+    } else {
+      const space=Math.floor((W-len)/gaps), extra=(W-len)%gaps;
+      snap(12,`Distribute: base ${space} spaces/gap, first ${extra} gap(s) get +1 (since ${W-len} = ${space}×${gaps} + ${extra}).`,{i,j,len,gaps,space,extra,lineStart:i,lineEnd:j-1,lines:out.slice()});
+      lineStr='';
+      for(let k=i;k<j;k++){
+        lineStr+=arr[k];
+        if(k<j-1){ const sp=space+((k-i)<extra?1:0); lineStr+=' '.repeat(sp); }
+      }
+      snap(14,`Line built: "${lineStr}" (exactly ${lineStr.length} chars).`,{i,j,len,gaps,space,extra,lineStart:i,lineEnd:j-1,building:lineStr,lines:out.slice()});
+    }
+    out.push(lineStr);
+    snap(15,`Commit line. Advance i → ${j}.`,{i:j,j,len,gaps,lineStart:i,lineEnd:j-1,lines:out.slice()});
+    i=j;
+  }
+  snap(17,`All words placed into ${out.length} lines, each exactly ${W} chars wide. Return result.`,{i:n,lines:out.slice(),done:true});
+  return h;
+}
+function buildWordRow(){const row=document.getElementById('wordRow');row.innerHTML='';words.forEach((w,i)=>{const b=document.createElement('div');b.className='word-box';b.id='w-'+i;b.textContent=w;row.appendChild(b);});}
+function buildRuler(){
+  let r=''; for(let k=0;k<W;k++)r+=(k%5===0?'|':'·');
+  document.getElementById('ruler').textContent=r+'  (width '+W+')';
+}
+function renderLine(str,building){
+  // show spaces as shaded; pad markers
+  let html=''; for(const ch of str){ if(ch===' ')html+='<span class="sp"> </span>'; else html+=ch; }
+  return html;
+}
+function applyStep(s){
+  document.querySelectorAll('.code-line').forEach(el=>el.classList.remove('active'));
+  const l=document.getElementById('line-'+s.line); if(l){l.classList.add('active');l.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  document.getElementById('statusBar').textContent=`→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent=`Step ${currentStep+1} / ${steps.length}`;
+  words.forEach((w,idx)=>{const b=document.getElementById('w-'+idx);if(!b)return;b.className='word-box';
+    const placedCount=s.lines.reduce((acc,ln)=>acc,0);
+    // words before current line start are placed
+    if(s.lineStart>=0&&idx<s.lineStart)b.classList.add('placed');
+    else if(s.lineStart>=0&&s.lineEnd>=s.lineStart&&idx>=s.lineStart&&idx<=s.lineEnd)b.classList.add('inline');
+    if(idx===s.candidate)b.classList.add('candidate');
+  });
+  const linesEl=document.getElementById('lines'); linesEl.innerHTML='';
+  s.lines.forEach(ln=>{const d=document.createElement('div');d.className='just-line';d.innerHTML=renderLine(ln);linesEl.appendChild(d);});
+  if(s.building){const d=document.createElement('div');d.className='just-line building';d.innerHTML=renderLine(s.building);linesEl.appendChild(d);}
+  updateVar('var-i',s.i>=0?s.i:'—'); updateVar('var-j',s.j>=0?s.j:'—'); updateVar('var-len',s.len);
+  updateVar('var-gaps',s.gaps); updateVar('var-space',s.space); updateVar('var-extra',s.extra); updateVar('var-W',W);
+}
+function updateVar(id,val){const el=document.getElementById(id);if(!el)return;const v=(val===null||val===undefined)?'—':String(val);if(el.textContent!==v){el.textContent=v;el.classList.remove('changed');void el.offsetWidth;el.classList.add('changed');}}
+function nextStep(){if(currentStep<steps.length-1){currentStep++;applyStep(steps[currentStep]);updateBtns();}else stopPlay();}
+function prevStep(){if(currentStep>0){currentStep--;applyStep(steps[currentStep]);updateBtns();}}
+function togglePlay(){isPlaying?stopPlay():startPlay();}
+function startPlay(){if(currentStep===steps.length-1)currentStep=0;isPlaying=true;document.getElementById('btnPlay').textContent='⏸ Pause';tick();}
+function stopPlay(){isPlaying=false;clearTimeout(timer);document.getElementById('btnPlay').textContent='▶ Play';}
+function tick(){if(!isPlaying)return;if(currentStep<steps.length-1){nextStep();const d=2100-parseInt(document.getElementById('speed').value)*20;timer=setTimeout(tick,Math.max(200,d));}else stopPlay();}
+function updateBtns(){document.getElementById('btnPrev').disabled=currentStep===0;document.getElementById('btnNext').disabled=currentStep===steps.length-1;}
+function loadInput(){
+  stopPlay();
+  words=(document.getElementById('inputStr').value||'').split(',').map(w=>w.trim()).filter(w=>w.length);
+  if(!words.length)words=['This','is','an','example','of','text','justification.'];
+  W=parseInt(document.getElementById('inputW').value); if(isNaN(W)||W<1)W=16;
+  // ensure W is at least the longest word
+  const maxW=Math.max(...words.map(w=>w.length)); if(W<maxW)W=maxW;
+  document.getElementById('inputStr').value=words.join(','); document.getElementById('inputW').value=W;
+  steps=generateSteps(words,W); currentStep=0; buildWordRow(); buildRuler(); applyStep(steps[0]); updateBtns();
+}
+window.addEventListener('load',loadInput);
+</script>
+</body>
+</html>

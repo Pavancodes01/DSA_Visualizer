@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Longest Palindromic Substring – Dry Run Visualizer</title>
+<style>
+:root {
+  --bg:#1e1e1e; --panel-bg:#252526; --border:#3e3e42; --text:#d4d4d4; --text-dim:#858585;
+  --accent:#007acc; --active-line:#37373d; --green:#4ec9b0; --yellow:#dcdcaa; --orange:#ce9178;
+  --purple:#c586c0; --blue:#569cd6; --lt-blue:#9cdcfe; --red:#f44747; --pointer-alt:#50fa7b;
+  --font-mono:'Consolas','Monaco','Courier New',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-ui);}
+body{display:flex;flex-direction:column;}
+header{flex-shrink:0;background:var(--panel-bg);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:48px;}
+.title{font-size:.95rem;font-weight:700;color:var(--lt-blue);white-space:nowrap;}
+.lc-badge{background:#f89f1b22;color:#f89f1b;border:1px solid #f89f1b55;border-radius:4px;padding:2px 7px;font-size:.7rem;font-weight:600;white-space:nowrap;}
+.input-group{display:flex;align-items:center;gap:6px;}
+.input-group label{font-size:.78rem;color:var(--text-dim);white-space:nowrap;}
+.input-group input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:.8rem;padding:4px 8px;border-radius:4px;width:160px;}
+.controls{display:flex;align-items:center;gap:6px;margin-left:auto;}
+button{background:#3a3d41;border:1px solid var(--border);color:var(--text);padding:5px 11px;border-radius:4px;cursor:pointer;font-size:.8rem;transition:background .2s;white-space:nowrap;}
+button:hover:not(:disabled){background:var(--accent);}
+button:disabled{opacity:.35;cursor:default;}
+#btnPlay{background:#0e639c;border-color:#007acc;}
+.speed-wrap{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--text-dim);}
+input[type=range]{width:65px;accent-color:var(--accent);}
+.step-counter{font-size:.76rem;color:var(--text-dim);white-space:nowrap;min-width:85px;text-align:right;}
+main{flex:1;min-height:0;display:grid;grid-template-columns:390px 1fr 240px;grid-template-rows:1fr;overflow:hidden;}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--border);min-height:0;overflow:hidden;}
+.panel:last-child{border-right:none;}
+.panel-header{flex-shrink:0;background:#2d2d2d;border-bottom:1px solid var(--border);padding:5px 12px;font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+#codePanel{flex:1;min-height:0;overflow-y:auto;padding:6px 0;}
+.code-line{display:flex;align-items:flex-start;padding:1px 8px 1px 0;line-height:1.6;font-family:var(--font-mono);font-size:.74rem;border-left:3px solid transparent;transition:background .2s,border-color .2s;}
+.code-line.active{background:var(--active-line);border-left-color:var(--accent);}
+.gutter{color:var(--text-dim);min-width:30px;text-align:right;padding-right:10px;user-select:none;font-size:.72rem;padding-top:1px;}
+.code-text{white-space:pre;}
+.keyword,.type{color:var(--blue);} .var{color:var(--lt-blue);} .num{color:#b5cea8;} .str{color:var(--orange);}
+.comment{color:#6a9955;font-style:italic;} .control{color:var(--purple);} .fn{color:var(--yellow);}
+#vizPanel{display:flex;flex-direction:column;min-height:0;}
+#vizArea{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:16px 20px 12px;gap:18px;}
+.viz-sub-title{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+#charScroll{overflow-x:auto;padding-top:40px;padding-bottom:44px;}
+#charRow{position:relative;display:inline-flex;gap:6px;min-width:max-content;}
+.ch-box{flex-shrink:0;width:44px;height:44px;border:2px solid var(--border);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;font-size:1rem;background:var(--panel-bg);transition:border-color .3s,background .3s,transform .2s;}
+.ch-box .idx{font-size:.55rem;color:var(--text-dim);margin-top:2px;font-weight:400;}
+.ch-box.center{border-color:var(--yellow);background:rgba(220,220,170,.16);}
+.ch-box.expand{border-color:var(--accent);background:rgba(0,122,204,.16);}
+.ch-box.matched{border-color:var(--green);background:rgba(78,201,176,.18);}
+.ch-box.mismatch{border-color:var(--red);background:rgba(244,71,71,.28);animation:shake .3s ease;}
+.ch-box.best{box-shadow:0 0 0 3px rgba(78,201,176,.4);}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.ptr-arrow{position:absolute;font-size:.72rem;font-weight:700;text-align:center;pointer-events:none;transition:left .4s cubic-bezier(.25,.8,.25,1);width:44px;}
+.ptr-L{color:var(--red);top:-34px;} .ptr-R{color:var(--pointer-alt);bottom:-38px;}
+.best-display{font-family:var(--font-mono);font-size:1.1rem;color:var(--green);font-weight:700;}
+.best-display .len{color:var(--text-dim);font-size:.85rem;font-weight:400;margin-left:8px;}
+#statusBar{flex-shrink:0;background:#1a1a2e;border-top:1px solid var(--border);padding:9px 16px;font-size:.82rem;color:var(--green);min-height:46px;max-height:70px;overflow-y:auto;line-height:1.5;}
+#varPanel{flex:1;min-height:0;overflow-y:auto;padding:12px;}
+.mem-section{margin-bottom:16px;}
+.mem-label{font-size:.66rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.var-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #2d2d2d;}
+.var-name{font-family:var(--font-mono);font-size:.74rem;color:var(--lt-blue);}
+.var-val{font-family:var(--font-mono);font-size:.8rem;color:var(--green);font-weight:600;padding:2px 6px;border-radius:3px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(0,122,204,.35)}}
+.var-val.changed{animation:flash .5s ease;}
+.info-box{background:#2d2d2d;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-size:.72rem;color:var(--text-dim);line-height:1.7;}
+.info-box b{color:var(--yellow);}
+.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle;}
+</style>
+</head>
+<body>
+<header>
+  <span class="title">Longest Palindromic Substring</span>
+  <span class="lc-badge">LeetCode #5</span>
+  <div class="input-group"><label>s:</label><input type="text" id="inputStr" value="babad" /><button onclick="loadInput()">Load</button></div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap"><span>Speed</span><input type="range" id="speed" min="1" max="100" value="50" /></div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+<main>
+  <div class="panel">
+    <div class="panel-header">Java Code — Expand Around Center</div>
+    <div id="codePanel">
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="type">String</span> <span class="fn">longestPalindrome</span>(<span class="type">String</span> <span class="var">s</span>) {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">  <span class="type">int</span> <span class="var">start</span>=<span class="num">0</span>, <span class="var">end</span>=<span class="num">0</span>;</span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text">  <span class="control">for</span> (<span class="type">int</span> <span class="var">c</span>=<span class="num">0</span>; <span class="var">c</span>&lt;<span class="var">s</span>.<span class="fn">length</span>(); <span class="var">c</span>++) {</span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">    <span class="type">int</span> <span class="var">len1</span> = <span class="fn">expand</span>(<span class="var">s</span>, <span class="var">c</span>, <span class="var">c</span>);   <span class="comment">// odd</span></span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text">    <span class="type">int</span> <span class="var">len2</span> = <span class="fn">expand</span>(<span class="var">s</span>, <span class="var">c</span>, <span class="var">c</span>+<span class="num">1</span>); <span class="comment">// even</span></span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">    <span class="type">int</span> <span class="var">len</span> = <span class="type">Math</span>.<span class="fn">max</span>(<span class="var">len1</span>, <span class="var">len2</span>);</span></div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text">    <span class="control">if</span> (<span class="var">len</span> &gt; <span class="var">end</span>-<span class="var">start</span>+<span class="num">1</span>) {</span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text">      <span class="var">start</span> = <span class="var">c</span> - (<span class="var">len</span>-<span class="num">1</span>)/<span class="num">2</span>;</span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">      <span class="var">end</span>   = <span class="var">c</span> + <span class="var">len</span>/<span class="num">2</span>;</span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">    }</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">  }</span></div>
+      <div class="code-line" id="line-12"><span class="gutter">12</span><span class="code-text">  <span class="control">return</span> <span class="var">s</span>.<span class="fn">substring</span>(<span class="var">start</span>, <span class="var">end</span>+<span class="num">1</span>);</span></div>
+      <div class="code-line" id="line-13"><span class="gutter">13</span><span class="code-text">}</span></div>
+      <div class="code-line" id="line-14"><span class="gutter">14</span><span class="code-text"><span class="type">int</span> <span class="fn">expand</span>(<span class="type">String</span> <span class="var">s</span>, <span class="type">int</span> <span class="var">L</span>, <span class="type">int</span> <span class="var">R</span>) {</span></div>
+      <div class="code-line" id="line-15"><span class="gutter">15</span><span class="code-text">  <span class="control">while</span> (<span class="var">L</span>&gt;=<span class="num">0</span> &amp;&amp; <span class="var">R</span>&lt;<span class="var">s</span>.<span class="fn">length</span>() &amp;&amp; <span class="var">s</span>.<span class="fn">charAt</span>(<span class="var">L</span>)==<span class="var">s</span>.<span class="fn">charAt</span>(<span class="var">R</span>)) {</span></div>
+      <div class="code-line" id="line-16"><span class="gutter">16</span><span class="code-text">    <span class="var">L</span>--; <span class="var">R</span>++;</span></div>
+      <div class="code-line" id="line-17"><span class="gutter">17</span><span class="code-text">  }</span></div>
+      <div class="code-line" id="line-18"><span class="gutter">18</span><span class="code-text">  <span class="control">return</span> <span class="var">R</span> - <span class="var">L</span> - <span class="num">1</span>;</span></div>
+      <div class="code-line" id="line-19"><span class="gutter">19</span><span class="code-text">}</span></div>
+    </div>
+  </div>
+  <div class="panel" id="vizPanel">
+    <div class="panel-header">Visualization — Expand L/R Around Each Center</div>
+    <div id="vizArea">
+      <div><div class="viz-sub-title">🔤 String (L red, R green, expanding outward)</div>
+        <div id="charScroll"><div id="charRow"></div></div>
+      </div>
+      <div><div class="viz-sub-title">🏆 Best Palindrome Found</div><div class="best-display" id="bestDisplay">—</div></div>
+    </div>
+    <div id="statusBar">→ Loading…</div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Stack</div>
+        <div class="var-row"><span class="var-name">center c</span><span class="var-val" id="var-c">—</span></div>
+        <div class="var-row"><span class="var-name">mode</span><span class="var-val" id="var-mode">—</span></div>
+        <div class="var-row"><span class="var-name">L</span><span class="var-val" id="var-L">—</span></div>
+        <div class="var-row"><span class="var-name">R</span><span class="var-val" id="var-R">—</span></div>
+        <div class="var-row"><span class="var-name">s[L]==s[R]?</span><span class="var-val" id="var-eq">—</span></div>
+        <div class="var-row"><span class="var-name">best len</span><span class="var-val" id="var-best">0</span></div>
+      </div>
+      <div class="mem-section">
+        <div class="mem-label">Legend</div>
+        <div class="info-box">
+          <span class="dot" style="background:var(--yellow)"></span> center<br>
+          <span class="dot" style="background:var(--green)"></span> matched pair<br>
+          <span class="dot" style="background:var(--red)"></span> mismatch → stop
+        </div>
+      </div>
+      <div class="mem-section" style="margin-top:10px">
+        <div class="mem-label">Two center types</div>
+        <div class="info-box">Every palindrome has a center. <b>Odd</b> length centers on one char (L=R=c). <b>Even</b> length centers between two chars (L=c, R=c+1). Try both for every position.</div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+let steps=[],currentStep=0,isPlaying=false,timer=null,str="";
+const CELL_W=50;
+function generateSteps(s){
+  const h=[];
+  const snap=(line,desc,e)=>h.push(Object.assign({line,desc,c:-1,mode:'—',L:-1,R:-1,eq:'—',bestStart:0,bestEnd:-1,phase:''},e||{}));
+  let start=0,end=-1; // end=-1 means empty best initially; we set to 0,0 on first
+  if(s.length===0){snap(12,'Empty string → return "".',{bestStart:0,bestEnd:-1});return h;}
+  start=0;end=0;
+  snap(2,'start=0, end=0. Track the best palindrome as an index range.',{bestStart:0,bestEnd:0});
+  for(let c=0;c<s.length;c++){
+    snap(3,`Center c=${c} ('${s[c]}'). Try to grow a palindrome here.`,{c,bestStart:start,bestEnd:end,phase:'center'});
+    // odd expand c,c
+    let res1=expandTrace(s,c,c,'odd',h,c,start,end);
+    // even expand c,c+1
+    let res2=expandTrace(s,c,c+1,'even',h,c,start,end);
+    const len=Math.max(res1,res2);
+    snap(6,`Best palindrome length centered at ${c}: max(odd ${res1}, even ${res2}) = ${len}.`,{c,bestStart:start,bestEnd:end,phase:'pick'});
+    if(len>end-start+1){
+      const ns=c-Math.floor((len-1)/2), ne=c+Math.floor(len/2);
+      snap(7,`len ${len} > current best ${end-start+1} → update best to s[${ns}..${ne}] = "${s.substring(ns,ne+1)}".`,{c,bestStart:ns,bestEnd:ne,phase:'update'});
+      start=ns;end=ne;
+    } else {
+      snap(7,`len ${len} ≤ current best ${end-start+1} → keep best "${s.substring(start,end+1)}".`,{c,bestStart:start,bestEnd:end,phase:'keep'});
+    }
+  }
+  snap(12,`All centers tried. Longest palindrome = "${s.substring(start,end+1)}". Return it.`,{bestStart:start,bestEnd:end,phase:'done'});
+  return h;
+
+  function expandTrace(s,L0,R0,mode,h,c,bs,be){
+    let L=L0,R=R0;
+    const line=mode==='odd'?4:5;
+    if(mode==='even'&&R0>=s.length){
+      snap(line,`Even center: R=${R0} is out of bounds → even-length palindrome here has length 0.`,{c,mode,L:L0,R:R0,eq:'—',bestStart:bs,bestEnd:be,phase:'expand'});
+      return 0;
+    }
+    snap(line,`${mode==='odd'?'Odd':'Even'} center: start L=${L}, R=${R}.`,{c,mode,L,R,bestStart:bs,bestEnd:be,phase:'expand'});
+    while(L>=0&&R<s.length&&s[L]===s[R]){
+      snap(15,`L=${L},R=${R}: s[${L}]='${s[L]}' == s[${R}]='${s[R]}' ✓ — palindrome extends. Expand outward.`,{c,mode,L,R,eq:'✓ match',bestStart:bs,bestEnd:be,phase:'match'});
+      L--;R++;
+    }
+    let reason;
+    if(L<0) reason=`L=${L} hit the left edge`;
+    else if(R>=s.length) reason=`R=${R} hit the right edge`;
+    else reason=`s[${L}]='${s[L]}' ≠ s[${R}]='${s[R]}'`;
+    snap(15,`Stop: ${reason}. Widest palindrome here spans (${L+1}..${R-1}), length ${R-L-1}.`,{c,mode,L,R,eq:(L>=0&&R<s.length)?'✗ differ':'edge',bestStart:bs,bestEnd:be,phase:'stop'});
+    return R-L-1;
+  }
+}
+function buildCharRow(s){
+  const row=document.getElementById('charRow'); row.innerHTML=''; row.style.width=(s.length*CELL_W-6)+'px';
+  for(let i=0;i<s.length;i++){const b=document.createElement('div');b.className='ch-box';b.id='ch-'+i;b.innerHTML=`<span>${s[i]}</span><span class="idx">${i}</span>`;row.appendChild(b);}
+  const pL=document.createElement('div');pL.id='ptrL';pL.className='ptr-arrow ptr-L';pL.innerHTML='▼<br>L';row.appendChild(pL);
+  const pR=document.createElement('div');pR.id='ptrR';pR.className='ptr-arrow ptr-R';pR.innerHTML='R<br>▲';row.appendChild(pR);
+}
+function applyStep(s){
+  document.querySelectorAll('.code-line').forEach(el=>el.classList.remove('active'));
+  const l=document.getElementById('line-'+s.line); if(l){l.classList.add('active');l.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  document.getElementById('statusBar').textContent=`→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent=`Step ${currentStep+1} / ${steps.length}`;
+  const n=str.length;
+  for(let i=0;i<n;i++){const b=document.getElementById('ch-'+i);if(!b)continue;b.className='ch-box';
+    if(s.bestEnd>=s.bestStart&&i>=s.bestStart&&i<=s.bestEnd)b.classList.add('best');
+  }
+  // center highlight
+  if(s.c>=0&&s.c<n){const cb=document.getElementById('ch-'+s.c);if(cb)cb.classList.add('center');}
+  // L/R highlight
+  if(s.L>=0&&s.L<n){const b=document.getElementById('ch-'+s.L);if(b)b.classList.add(s.phase==='stop'&&s.eq==='✗ differ'?'mismatch':(s.phase==='match'?'matched':'expand'));}
+  if(s.R>=0&&s.R<n){const b=document.getElementById('ch-'+s.R);if(b)b.classList.add(s.phase==='stop'&&s.eq==='✗ differ'?'mismatch':(s.phase==='match'?'matched':'expand'));}
+  const pL=document.getElementById('ptrL'),pR=document.getElementById('ptrR');
+  if(pL){if(s.L>=0&&s.L<n){pL.style.display='block';pL.style.left=(s.L*CELL_W)+'px';}else pL.style.display='none';}
+  if(pR){if(s.R>=0&&s.R<n){pR.style.display='block';pR.style.left=(s.R*CELL_W)+'px';}else pR.style.display='none';}
+  const bd=document.getElementById('bestDisplay');
+  if(s.bestEnd>=s.bestStart){const w=str.substring(s.bestStart,s.bestEnd+1);bd.innerHTML=`"${w}"<span class="len">(length ${w.length}, indices ${s.bestStart}–${s.bestEnd})</span>`;}
+  else bd.textContent='—';
+  updateVar('var-c',s.c>=0?s.c:'—'); updateVar('var-mode',s.mode);
+  updateVar('var-L',s.L>=-1?(s.L>=0?s.L:'—'):'—'); updateVar('var-R',s.R>=0?s.R:'—');
+  updateVar('var-eq',s.eq); updateVar('var-best',s.bestEnd>=s.bestStart?s.bestEnd-s.bestStart+1:0);
+}
+function updateVar(id,val){const el=document.getElementById(id);if(!el)return;const v=(val===null||val===undefined)?'—':String(val);if(el.textContent!==v){el.textContent=v;el.classList.remove('changed');void el.offsetWidth;el.classList.add('changed');}}
+function nextStep(){if(currentStep<steps.length-1){currentStep++;applyStep(steps[currentStep]);updateBtns();}else stopPlay();}
+function prevStep(){if(currentStep>0){currentStep--;applyStep(steps[currentStep]);updateBtns();}}
+function togglePlay(){isPlaying?stopPlay():startPlay();}
+function startPlay(){if(currentStep===steps.length-1)currentStep=0;isPlaying=true;document.getElementById('btnPlay').textContent='⏸ Pause';tick();}
+function stopPlay(){isPlaying=false;clearTimeout(timer);document.getElementById('btnPlay').textContent='▶ Play';}
+function tick(){if(!isPlaying)return;if(currentStep<steps.length-1){nextStep();const d=2100-parseInt(document.getElementById('speed').value)*20;timer=setTimeout(tick,Math.max(200,d));}else stopPlay();}
+function updateBtns(){document.getElementById('btnPrev').disabled=currentStep===0;document.getElementById('btnNext').disabled=currentStep===steps.length-1;}
+function loadInput(){
+  stopPlay();
+  str=(document.getElementById('inputStr').value||'babad').replace(/\s/g,'');
+  if(!str)str='babad'; if(str.length>14)str=str.substring(0,14);
+  document.getElementById('inputStr').value=str;
+  steps=generateSteps(str); currentStep=0; buildCharRow(str); applyStep(steps[0]); updateBtns();
+}
+window.addEventListener('load',loadInput);
+</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Regular Expression Matching – Dry Run Visualizer</title>
+<style>
+:root {
+  --bg:#1e1e1e; --panel-bg:#252526; --border:#3e3e42; --text:#d4d4d4; --text-dim:#858585;
+  --accent:#007acc; --active-line:#37373d; --green:#4ec9b0; --yellow:#dcdcaa; --orange:#ce9178;
+  --purple:#c586c0; --blue:#569cd6; --lt-blue:#9cdcfe; --red:#f44747; --pointer-alt:#50fa7b;
+  --font-mono:'Consolas','Monaco','Courier New',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-ui);}
+body{display:flex;flex-direction:column;}
+header{flex-shrink:0;background:var(--panel-bg);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:48px;}
+.title{font-size:.95rem;font-weight:700;color:var(--lt-blue);white-space:nowrap;}
+.lc-badge{background:#f89f1b22;color:#f89f1b;border:1px solid #f89f1b55;border-radius:4px;padding:2px 7px;font-size:.7rem;font-weight:600;white-space:nowrap;}
+.input-group{display:flex;align-items:center;gap:6px;}
+.input-group label{font-size:.78rem;color:var(--text-dim);white-space:nowrap;}
+.input-group input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:.8rem;padding:4px 8px;border-radius:4px;}
+#inputS{width:110px;} #inputP{width:110px;}
+.controls{display:flex;align-items:center;gap:6px;margin-left:auto;}
+button{background:#3a3d41;border:1px solid var(--border);color:var(--text);padding:5px 11px;border-radius:4px;cursor:pointer;font-size:.8rem;transition:background .2s;white-space:nowrap;}
+button:hover:not(:disabled){background:var(--accent);}
+button:disabled{opacity:.35;cursor:default;}
+#btnPlay{background:#0e639c;border-color:#007acc;}
+.speed-wrap{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--text-dim);}
+input[type=range]{width:65px;accent-color:var(--accent);}
+.step-counter{font-size:.76rem;color:var(--text-dim);white-space:nowrap;min-width:85px;text-align:right;}
+main{flex:1;min-height:0;display:grid;grid-template-columns:400px 1fr 250px;grid-template-rows:1fr;overflow:hidden;}
+.panel{display:flex;flex-direction:column;border-right:1px solid var(--border);min-height:0;overflow:hidden;}
+.panel:last-child{border-right:none;}
+.panel-header{flex-shrink:0;background:#2d2d2d;border-bottom:1px solid var(--border);padding:5px 12px;font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+#codePanel{flex:1;min-height:0;overflow-y:auto;padding:6px 0;}
+.code-line{display:flex;align-items:flex-start;padding:1px 8px 1px 0;line-height:1.55;font-family:var(--font-mono);font-size:.72rem;border-left:3px solid transparent;transition:background .2s,border-color .2s;}
+.code-line.active{background:var(--active-line);border-left-color:var(--accent);}
+.gutter{color:var(--text-dim);min-width:28px;text-align:right;padding-right:9px;user-select:none;font-size:.7rem;padding-top:1px;}
+.code-text{white-space:pre;}
+.keyword,.type{color:var(--blue);} .var{color:var(--lt-blue);} .num{color:#b5cea8;} .str{color:var(--orange);}
+.comment{color:#6a9955;font-style:italic;} .control{color:var(--purple);} .fn{color:var(--yellow);}
+#vizPanel{display:flex;flex-direction:column;min-height:0;}
+#vizArea{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:16px 20px 12px;gap:16px;}
+.viz-sub-title{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+.dp-wrap{overflow:auto;}
+table.dp{border-collapse:collapse;font-family:var(--font-mono);}
+table.dp th,table.dp td{width:38px;height:38px;text-align:center;border:1px solid var(--border);font-size:.82rem;}
+table.dp th{color:var(--text-dim);font-weight:700;background:#2d2d2d;}
+table.dp th.corner{background:#252526;}
+td.cell{background:var(--panel-bg);transition:background .3s,border-color .3s,transform .15s;}
+td.cell.t{color:var(--green);font-weight:700;}
+td.cell.f{color:var(--text-dim);}
+td.cell.empty{color:#4a4a4a;}
+td.cell.current{border:2px solid var(--accent);background:rgba(0,122,204,.22);transform:scale(1.08);}
+td.cell.source{border:2px solid var(--yellow);background:rgba(220,220,170,.16);}
+th.hl{color:var(--accent);background:rgba(0,122,204,.16);}
+.recur{font-family:var(--font-mono);font-size:.8rem;color:var(--text);line-height:1.8;}
+.recur .ok{color:var(--green);} .recur .bad{color:var(--red);} .recur .hl{color:var(--yellow);} .recur .star{color:var(--purple);}
+#statusBar{flex-shrink:0;background:#1a1a2e;border-top:1px solid var(--border);padding:9px 16px;font-size:.82rem;color:var(--green);min-height:46px;max-height:70px;overflow-y:auto;line-height:1.5;}
+#varPanel{flex:1;min-height:0;overflow-y:auto;padding:12px;}
+.mem-section{margin-bottom:16px;}
+.mem-label{font-size:.66rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.var-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #2d2d2d;}
+.var-name{font-family:var(--font-mono);font-size:.73rem;color:var(--lt-blue);}
+.var-val{font-family:var(--font-mono);font-size:.8rem;color:var(--green);font-weight:600;padding:2px 6px;border-radius:3px;}
+@keyframes flash{0%,100%{background:transparent}50%{background:rgba(0,122,204,.35)}}
+.var-val.changed{animation:flash .5s ease;}
+#resultBadge{display:none;margin:8px 0;padding:9px 12px;border-radius:6px;font-size:.85rem;font-weight:700;text-align:center;}
+#resultBadge.res-true{background:rgba(78,201,176,.2);border:1px solid var(--green);color:var(--green);}
+#resultBadge.res-false{background:rgba(244,71,71,.2);border:1px solid var(--red);color:var(--red);}
+.info-box{background:#2d2d2d;border:1px solid var(--border);border-radius:5px;padding:8px 10px;font-size:.71rem;color:var(--text-dim);line-height:1.7;}
+.info-box b{color:var(--yellow);}
+</style>
+</head>
+<body>
+<header>
+  <span class="title">Regular Expression Matching</span>
+  <span class="lc-badge">LeetCode #10</span>
+  <div class="input-group"><label>s:</label><input type="text" id="inputS" value="aab" />
+    <label>p:</label><input type="text" id="inputP" value="c*a*b" /><button onclick="loadInput()">Load</button></div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap"><span>Speed</span><input type="range" id="speed" min="1" max="100" value="50" /></div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+<main>
+  <div class="panel">
+    <div class="panel-header">Java Code — 2D DP</div>
+    <div id="codePanel">
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="type">boolean</span> <span class="fn">isMatch</span>(<span class="type">String</span> <span class="var">s</span>, <span class="type">String</span> <span class="var">p</span>) {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">  <span class="type">int</span> <span class="var">m</span>=<span class="var">s</span>.<span class="fn">length</span>(), <span class="var">n</span>=<span class="var">p</span>.<span class="fn">length</span>();</span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text">  <span class="type">boolean</span>[][] <span class="var">dp</span> = <span class="keyword">new</span> <span class="type">boolean</span>[<span class="var">m</span>+<span class="num">1</span>][<span class="var">n</span>+<span class="num">1</span>];</span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">  <span class="var">dp</span>[<span class="num">0</span>][<span class="num">0</span>] = <span class="keyword">true</span>; <span class="comment">// empty matches empty</span></span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text">  <span class="control">for</span> (<span class="type">int</span> <span class="var">j</span>=<span class="num">1</span>; <span class="var">j</span>&lt;=<span class="var">n</span>; <span class="var">j</span>++)  <span class="comment">// x* can match empty</span></span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">    <span class="control">if</span> (<span class="var">p</span>[<span class="var">j</span>-<span class="num">1</span>]==<span class="str">'*'</span>) <span class="var">dp</span>[<span class="num">0</span>][<span class="var">j</span>] = <span class="var">dp</span>[<span class="num">0</span>][<span class="var">j</span>-<span class="num">2</span>];</span></div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text">  <span class="control">for</span> (<span class="type">int</span> <span class="var">i</span>=<span class="num">1</span>; <span class="var">i</span>&lt;=<span class="var">m</span>; <span class="var">i</span>++)</span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text">    <span class="control">for</span> (<span class="type">int</span> <span class="var">j</span>=<span class="num">1</span>; <span class="var">j</span>&lt;=<span class="var">n</span>; <span class="var">j</span>++) {</span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">      <span class="control">if</span> (<span class="var">p</span>[<span class="var">j</span>-<span class="num">1</span>]==<span class="str">'.'</span> || <span class="var">p</span>[<span class="var">j</span>-<span class="num">1</span>]==<span class="var">s</span>[<span class="var">i</span>-<span class="num">1</span>])</span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">        <span class="var">dp</span>[<span class="var">i</span>][<span class="var">j</span>] = <span class="var">dp</span>[<span class="var">i</span>-<span class="num">1</span>][<span class="var">j</span>-<span class="num">1</span>];</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">      <span class="control">else if</span> (<span class="var">p</span>[<span class="var">j</span>-<span class="num">1</span>]==<span class="str">'*'</span>) {</span></div>
+      <div class="code-line" id="line-12"><span class="gutter">12</span><span class="code-text">        <span class="var">dp</span>[<span class="var">i</span>][<span class="var">j</span>] = <span class="var">dp</span>[<span class="var">i</span>][<span class="var">j</span>-<span class="num">2</span>]; <span class="comment">// zero copies</span></span></div>
+      <div class="code-line" id="line-13"><span class="gutter">13</span><span class="code-text">        <span class="control">if</span> (<span class="var">p</span>[<span class="var">j</span>-<span class="num">2</span>]==<span class="str">'.'</span> || <span class="var">p</span>[<span class="var">j</span>-<span class="num">2</span>]==<span class="var">s</span>[<span class="var">i</span>-<span class="num">1</span>])</span></div>
+      <div class="code-line" id="line-14"><span class="gutter">14</span><span class="code-text">          <span class="var">dp</span>[<span class="var">i</span>][<span class="var">j</span>] |= <span class="var">dp</span>[<span class="var">i</span>-<span class="num">1</span>][<span class="var">j</span>]; <span class="comment">// one more copy</span></span></div>
+      <div class="code-line" id="line-15"><span class="gutter">15</span><span class="code-text">      }</span></div>
+      <div class="code-line" id="line-16"><span class="gutter">16</span><span class="code-text">    }</span></div>
+      <div class="code-line" id="line-17"><span class="gutter">17</span><span class="code-text">  <span class="control">return</span> <span class="var">dp</span>[<span class="var">m</span>][<span class="var">n</span>];</span></div>
+      <div class="code-line" id="line-18"><span class="gutter">18</span><span class="code-text">}</span></div>
+    </div>
+  </div>
+  <div class="panel" id="vizPanel">
+    <div class="panel-header">Visualization — DP Table dp[i][j]</div>
+    <div id="vizArea">
+      <div><div class="viz-sub-title">📊 dp[i][j] = does s[0..i) match p[0..j) ?</div>
+        <div class="dp-wrap"><table class="dp" id="dpTable"></table></div>
+      </div>
+      <div><div class="viz-sub-title">🧮 Recurrence for current cell</div><div class="recur" id="recur">—</div></div>
+    </div>
+    <div id="statusBar">→ Loading…</div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Stack</div>
+        <div class="var-row"><span class="var-name">i (s idx)</span><span class="var-val" id="var-i">—</span></div>
+        <div class="var-row"><span class="var-name">j (p idx)</span><span class="var-val" id="var-j">—</span></div>
+        <div class="var-row"><span class="var-name">s[i-1]</span><span class="var-val" id="var-si">—</span></div>
+        <div class="var-row"><span class="var-name">p[j-1]</span><span class="var-val" id="var-pj">—</span></div>
+        <div class="var-row"><span class="var-name">dp[i][j]</span><span class="var-val" id="var-dp">—</span></div>
+      </div>
+      <div id="resultBadge"></div>
+      <div class="mem-section">
+        <div class="mem-label">Rules</div>
+        <div class="info-box">
+          <b>'.'</b> matches any single char.<br>
+          <b>x*</b> matches zero or more of the char <b>x</b> before it.<br>
+          <b>*</b> uses two paths: skip <b>x*</b> (dp[i][j-2]) or consume one x (dp[i-1][j]).
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<script>
+let steps=[],currentStep=0,isPlaying=false,timer=null,S="",P="",M=0,N=0;
+function generateSteps(s,p){
+  const h=[];
+  const m=s.length,n=p.length;
+  const dp=Array.from({length:m+1},()=>new Array(n+1).fill(false));
+  const clone=d=>d.map(r=>r.slice());
+  const snap=(line,desc,e)=>h.push(Object.assign({line,desc,i:-1,j:-1,cur:null,sources:[],dp:clone(dp),recur:'',result:null},e||{}));
+  snap(4,'dp[0][0] = true — an empty pattern matches an empty string.',{i:0,j:0,cur:[0,0]});
+  dp[0][0]=true; snap(4,'Set dp[0][0]=true.',{i:0,j:0,cur:[0,0],dp:clone(dp)});
+  // first row: pattern vs empty string
+  for(let j=1;j<=n;j++){
+    if(p[j-1]==='*'){
+      dp[0][j]=dp[0][j-2];
+      snap(6,`p[${j-1}]='*'. x* can match empty → dp[0][${j}] = dp[0][${j-2}] = ${dp[0][j-2]}.`,{i:0,j,cur:[0,j],sources:[[0,j-2]],dp:clone(dp),recur:`dp[0][${j}] = dp[0][${j-2}] (${dp[0][j-2]}) — '${p[j-2]||''}*' matches empty`});
+    } else {
+      snap(6,`p[${j-1}]='${p[j-1]}' is not '*' → dp[0][${j}] stays false (a real char can't match empty s).`,{i:0,j,cur:[0,j],dp:clone(dp),recur:`dp[0][${j}] = false`});
+    }
+  }
+  // main
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      const pc=p[j-1], sc=s[i-1];
+      if(pc==='.'||pc===sc){
+        dp[i][j]=dp[i-1][j-1];
+        snap(10,`p[${j-1}]='${pc}' matches s[${i-1}]='${sc}'${pc==='.'?" (via '.')":''} → dp[${i}][${j}] = dp[${i-1}][${j-1}] = ${dp[i-1][j-1]}.`,
+          {i,j,cur:[i,j],sources:[[i-1,j-1]],dp:clone(dp),recur:`<span class="hl">'${pc}'=='${sc}'</span> → dp[${i}][${j}] = dp[${i-1}][${j-1}] = <span class="${dp[i-1][j-1]?'ok':'bad'}">${dp[i-1][j-1]}</span>`});
+      } else if(pc==='*'){
+        const prev=p[j-2];
+        dp[i][j]=dp[i][j-2];
+        snap(12,`p[${j-1}]='*'. Try ZERO copies of '${prev}*' → dp[${i}][${j}] = dp[${i}][${j-2}] = ${dp[i][j-2]}.`,
+          {i,j,cur:[i,j],sources:[[i,j-2]],dp:clone(dp),recur:`<span class="star">'${prev}*'</span> zero copies → dp[${i}][${j}] = dp[${i}][${j-2}] = <span class="${dp[i][j-2]?'ok':'bad'}">${dp[i][j-2]}</span>`});
+        if(prev==='.'||prev===sc){
+          const before=dp[i][j];
+          dp[i][j]=dp[i][j]||dp[i-1][j];
+          snap(14,`'${prev}' matches s[${i-1}]='${sc}' → also try ONE more copy: dp[${i}][${j}] |= dp[${i-1}][${j}] (${dp[i-1][j]}) → ${dp[i][j]}.`,
+            {i,j,cur:[i,j],sources:[[i,j-2],[i-1,j]],dp:clone(dp),recur:`<span class="star">'${prev}*'</span> consume one '${sc}' → dp[${i}][${j}] |= dp[${i-1}][${j}] (${dp[i-1][j]}) = <span class="${dp[i][j]?'ok':'bad'}">${dp[i][j]}</span>`});
+        } else {
+          snap(13,`'${prev}' ≠ s[${i-1}]='${sc}' → can't consume; keep dp[${i}][${j}] = ${dp[i][j]}.`,
+            {i,j,cur:[i,j],sources:[[i,j-2]],dp:clone(dp),recur:`'${prev}' ≠ '${sc}' → only zero-copy path. dp[${i}][${j}] = <span class="${dp[i][j]?'ok':'bad'}">${dp[i][j]}</span>`});
+        }
+      } else {
+        snap(9,`p[${j-1}]='${pc}' ≠ s[${i-1}]='${sc}' and not '*' → dp[${i}][${j}] = false.`,
+          {i,j,cur:[i,j],dp:clone(dp),recur:`'${pc}' ≠ '${sc}' → dp[${i}][${j}] = <span class="bad">false</span>`});
+      }
+    }
+  }
+  snap(17,`Answer = dp[${m}][${n}] = ${dp[m][n]}. "${s}" ${dp[m][n]?'matches':'does NOT match'} pattern "${p}".`,{i:m,j:n,cur:[m,n],dp:clone(dp),result:dp[m][n],recur:`Final: dp[${m}][${n}] = <span class="${dp[m][n]?'ok':'bad'}">${dp[m][n]}</span>`});
+  return h;
+}
+function buildTable(){
+  const t=document.getElementById('dpTable'); t.innerHTML='';
+  // header row: corner, "", p chars
+  let head='<tr><th class="corner"></th><th class="corner">ε</th>';
+  for(let j=0;j<N;j++)head+=`<th id="ph-${j+1}">${P[j]}</th>`;
+  head+='</tr>';
+  let body='';
+  for(let i=0;i<=M;i++){
+    const rowLabel=i===0?'ε':S[i-1];
+    body+=`<tr><th id="sh-${i}">${rowLabel}</th>`;
+    for(let j=0;j<=N;j++){
+      body+=`<td class="cell empty" id="c-${i}-${j}">·</td>`;
+    }
+    body+='</tr>';
+  }
+  t.innerHTML=head+body;
+}
+function applyStep(s){
+  document.querySelectorAll('.code-line').forEach(el=>el.classList.remove('active'));
+  const l=document.getElementById('line-'+s.line); if(l){l.classList.add('active');l.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  document.getElementById('statusBar').textContent=`→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent=`Step ${currentStep+1} / ${steps.length}`;
+  // fill cells that have been computed: we render dp booleans but only show cells "reached"
+  for(let i=0;i<=M;i++)for(let j=0;j<=N;j++){
+    const c=document.getElementById(`c-${i}-${j}`); if(!c)continue;
+    const val=s.dp[i][j];
+    // determine if this cell is "filled" — compare to whether it's been visited. Show T/F once current has passed it.
+    c.className='cell';
+    c.textContent=val?'T':'F';
+    if(val)c.classList.add('t'); else c.classList.add('f');
+  }
+  // headers reset
+  for(let j=1;j<=N;j++){const ph=document.getElementById('ph-'+j);if(ph)ph.className='';}
+  for(let i=0;i<=M;i++){const sh=document.getElementById('sh-'+i);if(sh)sh.className='';}
+  (s.sources||[]).forEach(([i,j])=>{const c=document.getElementById(`c-${i}-${j}`);if(c)c.classList.add('source');});
+  if(s.cur){const [i,j]=s.cur;const c=document.getElementById(`c-${i}-${j}`);if(c)c.classList.add('current');
+    const ph=document.getElementById('ph-'+j);if(ph)ph.className='hl';
+    const sh=document.getElementById('sh-'+i);if(sh)sh.className='hl';
+  }
+  document.getElementById('recur').innerHTML=s.recur||'—';
+  const i=s.i,j=s.j;
+  updateVar('var-i',i>=0?i:'—'); updateVar('var-j',j>=0?j:'—');
+  updateVar('var-si',(i>=1&&i<=M)?S[i-1]:'—'); updateVar('var-pj',(j>=1&&j<=N)?P[j-1]:'—');
+  updateVar('var-dp',s.cur?(s.dp[s.cur[0]][s.cur[1]]?'true':'false'):'—');
+  const badge=document.getElementById('resultBadge');
+  if(s.result===true){badge.style.display='block';badge.className='res-true';badge.textContent='✅ isMatch = true';}
+  else if(s.result===false){badge.style.display='block';badge.className='res-false';badge.textContent='❌ isMatch = false';}
+  else badge.style.display='none';
+}
+function updateVar(id,val){const el=document.getElementById(id);if(!el)return;const v=(val===null||val===undefined)?'—':String(val);if(el.textContent!==v){el.textContent=v;el.classList.remove('changed');void el.offsetWidth;el.classList.add('changed');}}
+function nextStep(){if(currentStep<steps.length-1){currentStep++;applyStep(steps[currentStep]);updateBtns();}else stopPlay();}
+function prevStep(){if(currentStep>0){currentStep--;applyStep(steps[currentStep]);updateBtns();}}
+function togglePlay(){isPlaying?stopPlay():startPlay();}
+function startPlay(){if(currentStep===steps.length-1)currentStep=0;isPlaying=true;document.getElementById('btnPlay').textContent='⏸ Pause';tick();}
+function stopPlay(){isPlaying=false;clearTimeout(timer);document.getElementById('btnPlay').textContent='▶ Play';}
+function tick(){if(!isPlaying)return;if(currentStep<steps.length-1){nextStep();const d=2100-parseInt(document.getElementById('speed').value)*20;timer=setTimeout(tick,Math.max(200,d));}else stopPlay();}
+function updateBtns(){document.getElementById('btnPrev').disabled=currentStep===0;document.getElementById('btnNext').disabled=currentStep===steps.length-1;}
+function validPattern(p){
+  // '*' must not be first and must follow a normal char or '.'
+  if(p[0]==='*')return false;
+  return true;
+}
+function loadInput(){
+  stopPlay();
+  S=(document.getElementById('inputS').value||'aab').replace(/\s/g,'');
+  P=(document.getElementById('inputP').value||'c*a*b').replace(/\s/g,'');
+  if(!validPattern(P))P='c*a*b';
+  if(S.length>8)S=S.substring(0,8); if(P.length>10)P=P.substring(0,10);
+  document.getElementById('inputS').value=S; document.getElementById('inputP').value=P;
+  M=S.length;N=P.length;
+  steps=generateSteps(S,P); currentStep=0; buildTable(); applyStep(steps[0]); updateBtns();
+}
+window.addEventListener('load',loadInput);
+</script>
+</body>
+</html>
