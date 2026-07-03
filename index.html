@@ -266,6 +266,71 @@
             box-shadow: 0 12px 24px rgba(32, 72, 94, 0.2);
         }
 
+        .filter-label {
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            white-space: nowrap;
+            align-self: center;
+        }
+
+        .progress-wrap {
+            margin-top: 10px;
+        }
+
+        .progress-bar-track {
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(73, 52, 31, 0.1);
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--secondary), var(--accent));
+            transition: width 0.4s ease;
+        }
+
+        .problem-row.solved .problem-title::after {
+            content: " ✓";
+            color: var(--easy);
+            font-size: 0.85rem;
+        }
+
+        .problem-row.solved {
+            background: rgba(31, 157, 85, 0.04);
+        }
+
+        .solve-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(73, 52, 31, 0.15);
+            background: transparent;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: border-color 0.2s, background 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .solve-btn:hover {
+            border-color: var(--easy);
+            color: var(--easy);
+        }
+
+        .problem-row.solved .solve-btn {
+            background: var(--easy);
+            border-color: var(--easy);
+            color: #fff;
+        }
+
         .results-meta {
             display: flex;
             justify-content: space-between;
@@ -446,6 +511,13 @@
         .difficulty-hard {
             color: var(--hard);
             background: var(--hard-soft);
+        }
+
+        .problem-side {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
         }
 
         .problem-arrow {
@@ -650,6 +722,13 @@
                         <div class="stat-value" id="total-categories">0</div>
                         <div class="stat-meta">Grouped by concept for quicker revision</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Progress</div>
+                        <div class="stat-value" id="solved-count">0 / 0</div>
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -663,6 +742,10 @@
                     <input id="search-input" type="search" placeholder="Search by problem name, category, or number">
                 </label>
                 <div class="filter-group" id="difficulty-filters"></div>
+            </div>
+            <div class="control-row">
+                <span class="filter-label">Category</span>
+                <div class="filter-group" id="category-filters"></div>
             </div>
             <div class="results-meta">
                 <span><strong id="visible-count">0</strong> items visible</span>
@@ -699,14 +782,32 @@
         const elViewerIframe = document.getElementById('viewer-iframe');
         const elSearchInput = document.getElementById('search-input');
         const elDifficultyFilters = document.getElementById('difficulty-filters');
+        const elCategoryFilters = document.getElementById('category-filters');
         const elVisibleCount = document.getElementById('visible-count');
         const elResultsSummary = document.getElementById('results-summary');
         const elTotalProblems = document.getElementById('total-problems');
         const elTotalCategories = document.getElementById('total-categories');
+        const elSolvedCount = document.getElementById('solved-count');
+        const elProgressBar = document.getElementById('progress-bar');
+
+        const SOLVED_KEY = 'dsa-viz-solved';
+        let solvedSet = new Set(JSON.parse(localStorage.getItem(SOLVED_KEY) || '[]'));
+
+        function saveSolved() {
+            localStorage.setItem(SOLVED_KEY, JSON.stringify([...solvedSet]));
+        }
+
+        function toggleSolved(id) {
+            if (solvedSet.has(id)) solvedSet.delete(id);
+            else solvedSet.add(id);
+            saveSolved();
+            renderDashboard();
+        }
 
         const state = {
             search: '',
-            difficulty: 'All'
+            difficulty: 'All',
+            category: 'All'
         };
 
         const difficultyOrder = ['All', 'Easy', 'Medium', 'Hard'];
@@ -721,7 +822,9 @@
             'Graph': '<svg viewBox="0 0 40 40" fill="none"><circle cx="10" cy="10" r="4" fill="#20485e"/><circle cx="30" cy="12" r="4" fill="#9c5f1d"/><circle cx="12" cy="30" r="4" fill="#9c5f1d"/><circle cx="30" cy="28" r="4" fill="#20485e"/><path d="M13 12 27 13.5M14 28 26.5 27M11 14v12M29 16v8" stroke="#64748b" stroke-width="1.8" stroke-linecap="round"/></svg>',
             'String': '<svg viewBox="0 0 40 40" fill="none"><path d="M7 27c1.8-6 6-10 13-10 4.5 0 7.2-1.5 10-5" stroke="#20485e" stroke-width="3" stroke-linecap="round"/><path d="M10 12h7M23 28h7" stroke="#9c5f1d" stroke-width="3" stroke-linecap="round"/></svg>',
             'Dynamic Programming': '<svg viewBox="0 0 40 40" fill="none"><rect x="5" y="5" width="11" height="11" rx="3" fill="#20485e" opacity="0.28"/><rect x="24" y="5" width="11" height="11" rx="3" fill="#9c5f1d" opacity="0.3"/><rect x="5" y="24" width="11" height="11" rx="3" fill="#9c5f1d" opacity="0.3"/><rect x="24" y="24" width="11" height="11" rx="3" fill="#20485e"/><path d="M16 10h8M10 16v8M30 16v8M16 30h8" stroke="#64748b" stroke-width="1.8" stroke-linecap="round"/></svg>',
-            'Sorting': '<svg viewBox="0 0 40 40" fill="none"><rect x="5" y="26" width="6" height="9" rx="2" fill="#20485e"/><rect x="14" y="21" width="6" height="14" rx="2" fill="#9c5f1d"/><rect x="23" y="14" width="6" height="21" rx="2" fill="#20485e" opacity="0.8"/><rect x="32" y="8" width="3" height="27" rx="1.5" fill="#9c5f1d"/></svg>'
+            'Sorting': '<svg viewBox="0 0 40 40" fill="none"><rect x="5" y="26" width="6" height="9" rx="2" fill="#20485e"/><rect x="14" y="21" width="6" height="14" rx="2" fill="#9c5f1d"/><rect x="23" y="14" width="6" height="21" rx="2" fill="#20485e" opacity="0.8"/><rect x="32" y="8" width="3" height="27" rx="1.5" fill="#9c5f1d"/></svg>',
+            'HashSet': '<svg viewBox="0 0 40 40" fill="none"><rect x="6" y="8" width="28" height="7" rx="2" fill="#20485e" opacity="0.3"/><rect x="6" y="17" width="28" height="7" rx="2" fill="#20485e" opacity="0.6"/><rect x="6" y="26" width="28" height="7" rx="2" fill="#20485e"/><circle cx="31" cy="11.5" r="3" fill="#9c5f1d"/><circle cx="31" cy="20.5" r="3" fill="#9c5f1d" opacity="0.65"/><circle cx="31" cy="29.5" r="3" fill="#9c5f1d" opacity="0.3"/></svg>',
+            'HashMap': '<svg viewBox="0 0 40 40" fill="none"><rect x="5" y="8" width="13" height="8" rx="2" fill="#20485e" opacity="0.85"/><rect x="5" y="18" width="13" height="8" rx="2" fill="#20485e" opacity="0.55"/><rect x="5" y="28" width="13" height="8" rx="2" fill="#20485e" opacity="0.3"/><path d="M18 12h4M18 22h4M18 32h4" stroke="#64748b" stroke-width="2" stroke-linecap="round"/><rect x="22" y="8" width="13" height="8" rx="2" fill="#9c5f1d" opacity="0.85"/><rect x="22" y="18" width="13" height="8" rx="2" fill="#9c5f1d" opacity="0.55"/><rect x="22" y="28" width="13" height="8" rx="2" fill="#9c5f1d" opacity="0.3"/></svg>'
         };
 
         const defaultIcon = '<svg viewBox="0 0 40 40" fill="none"><rect x="7" y="7" width="26" height="26" rx="8" stroke="#20485e" stroke-width="2.5"/><circle cx="20" cy="20" r="5.5" fill="#9c5f1d" opacity="0.72"/></svg>';
@@ -748,9 +851,10 @@
 
             return problems.filter(problem => {
                 const matchesDifficulty = state.difficulty === 'All' || problem.difficulty === state.difficulty;
+                const matchesCategory = state.category === 'All' || problem.category === state.category;
                 const haystack = [problem.title, problem.category, '#' + problem.id].join(' ').toLowerCase();
                 const matchesQuery = !query || haystack.includes(query);
-                return matchesDifficulty && matchesQuery;
+                return matchesDifficulty && matchesCategory && matchesQuery;
             });
         }
 
@@ -763,6 +867,21 @@
             Array.from(elDifficultyFilters.querySelectorAll('[data-difficulty]')).forEach(button => {
                 button.addEventListener('click', () => {
                     state.difficulty = button.dataset.difficulty;
+                    renderDashboard();
+                });
+            });
+        }
+
+        function renderCategoryFilters() {
+            const categories = ['All', ...new Set(problems.map(p => p.category))];
+            elCategoryFilters.innerHTML = categories.map(cat => {
+                const isActive = state.category === cat ? 'active' : '';
+                return '<button class="filter-chip ' + isActive + '" type="button" data-category="' + escapeHtml(cat) + '">' + escapeHtml(cat) + '</button>';
+            }).join('');
+
+            Array.from(elCategoryFilters.querySelectorAll('[data-category]')).forEach(button => {
+                button.addEventListener('click', () => {
+                    state.category = button.dataset.category;
                     renderDashboard();
                 });
             });
@@ -784,11 +903,22 @@
             elTotalProblems.textContent = problems.length;
             elTotalCategories.textContent = new Set(problems.map(problem => problem.category)).size;
             elVisibleCount.textContent = filteredProblems.length;
-            elResultsSummary.textContent = state.search || state.difficulty !== 'All'
-                ? 'Filtered by ' + (state.difficulty !== 'All' ? state.difficulty : 'all difficulties') + (state.search ? ' and "' + state.search.trim() + '"' : '')
+
+            const solved = problems.filter(p => solvedSet.has(p.id)).length;
+            const total = problems.length;
+            elSolvedCount.textContent = solved + ' / ' + total;
+            elProgressBar.style.width = (total ? Math.round(solved / total * 100) : 0) + '%';
+
+            const activeFilters = [];
+            if (state.difficulty !== 'All') activeFilters.push(state.difficulty);
+            if (state.category !== 'All') activeFilters.push(state.category);
+            if (state.search) activeFilters.push('"' + state.search.trim() + '"');
+            elResultsSummary.textContent = activeFilters.length
+                ? 'Filtered by ' + activeFilters.join(', ')
                 : 'All problems are shown';
 
             renderDifficultyFilters();
+            renderCategoryFilters();
 
             if (!filteredProblems.length) {
                 elDashboard.innerHTML = '<div class="empty-state"><h3>No matching problems</h3><p>Try a different search term or switch the difficulty filter to see more visualizations.</p></div>';
@@ -797,8 +927,9 @@
 
             elDashboard.innerHTML = order.map(category => {
                 const items = groups[category].map((problem, index) => {
+                    const isSolved = solvedSet.has(problem.id);
                     return '' +
-                        '<button class="problem-row" type="button" data-problem-id="' + problem.id + '">' +
+                        '<button class="problem-row' + (isSolved ? ' solved' : '') + '" type="button" data-problem-id="' + problem.id + '">' +
                             '<span class="problem-index">' + String(index + 1).padStart(2, '0') + '</span>' +
                             '<div class="problem-main">' +
                                 '<div class="problem-title">' + escapeHtml(problem.title) + '</div>' +
@@ -809,6 +940,7 @@
                             '</div>' +
                             '<div class="problem-side">' +
                                 '<span class="difficulty-badge ' + difficultyClass(problem.difficulty) + '">' + escapeHtml(problem.difficulty) + '</span>' +
+                                '<button class="solve-btn" type="button" data-solve-id="' + problem.id + '" title="' + (isSolved ? 'Mark as not done' : 'Mark as done') + '" aria-label="' + (isSolved ? 'Mark as not done' : 'Mark as done') + '">' + (isSolved ? '✓' : '') + '</button>' +
                                 '<span class="problem-arrow" aria-hidden="true">→</span>' +
                             '</div>' +
                         '</button>';
@@ -829,6 +961,13 @@
                         '<div class="problem-list">' + items + '</div>' +
                     '</section>';
             }).join('');
+
+            Array.from(elDashboard.querySelectorAll('[data-solve-id]')).forEach(btn => {
+                btn.addEventListener('click', event => {
+                    event.stopPropagation();
+                    toggleSolved(Number(btn.dataset.solveId));
+                });
+            });
 
             Array.from(elDashboard.querySelectorAll('[data-problem-id]')).forEach(button => {
                 button.addEventListener('click', () => {

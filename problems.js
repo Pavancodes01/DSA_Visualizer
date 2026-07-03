@@ -90,5 +90,12 @@ const problems = [
         category: "Two Pointers",
         difficulty: "Easy",
         file: "problems/ValidPalindrome.html"
+    },
+    {
+        id:13,
+        title:"Longest Common Prefix (#14)",
+        category: "String",
+        difficulty: "Easy",
+        file: "problems/LongestCommonPrefix.html"
     }
 ];

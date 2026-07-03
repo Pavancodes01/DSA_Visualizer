@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Longest Common Prefix – Dry Run Visualizer</title>
+<style>
+:root {
+  --bg:          #1e1e1e;
+  --panel-bg:    #252526;
+  --border:      #3e3e42;
+  --text:        #d4d4d4;
+  --text-dim:    #858585;
+  --accent:      #007acc;
+  --active-line: #37373d;
+  --green:       #4ec9b0;
+  --yellow:      #dcdcaa;
+  --orange:      #ce9178;
+  --purple:      #c586c0;
+  --blue:        #569cd6;
+  --lt-blue:     #9cdcfe;
+  --red:         #f44747;
+  --pointer-alt: #50fa7b;
+  --font-mono:   'Consolas','Monaco','Courier New',monospace;
+  --font-ui:     -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+
+/* ── RESET & BASE ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+header {
+  flex-shrink: 0;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  min-height: 48px;
+}
+.title { font-size: .95rem; font-weight: 700; color: var(--lt-blue); white-space: nowrap; }
+.lc-badge {
+  background: #f89f1b22; color: #f89f1b;
+  border: 1px solid #f89f1b55; border-radius: 4px;
+  padding: 2px 7px; font-size: .7rem; font-weight: 600; white-space: nowrap;
+}
+.input-group { display: flex; align-items: center; gap: 6px; }
+.input-group label { font-size: .78rem; color: var(--text-dim); white-space: nowrap; }
+.input-group input {
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-mono); font-size: .8rem;
+  padding: 4px 8px; border-radius: 4px; width: 230px;
+}
+.controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+button {
+  background: #3a3d41; border: 1px solid var(--border);
+  color: var(--text); padding: 5px 11px; border-radius: 4px;
+  cursor: pointer; font-size: .8rem; transition: background .2s; white-space: nowrap;
+}
+button:hover:not(:disabled) { background: var(--accent); }
+button:disabled { opacity: .35; cursor: default; }
+#btnPlay { background: #0e639c; border-color: #007acc; }
+.speed-wrap { display: flex; align-items: center; gap: 5px; font-size: .76rem; color: var(--text-dim); }
+input[type=range] { width: 65px; accent-color: var(--accent); }
+.step-counter { font-size: .76rem; color: var(--text-dim); white-space: nowrap; min-width: 85px; text-align: right; }
+
+/* ── MAIN 3-COLUMN GRID ── */
+main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 400px 1fr 240px;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+}
+
+/* ── PANEL SHELL ── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  min-height: 0;
+  overflow: hidden;
+}
+.panel:last-child { border-right: none; }
+.panel-header {
+  flex-shrink: 0;
+  background: #2d2d2d;
+  border-bottom: 1px solid var(--border);
+  padding: 5px 12px;
+  font-size: .7rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .08em; font-weight: 600;
+}
+
+/* ── CODE PANEL ── */
+#codePanel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+.code-line {
+  display: flex; align-items: flex-start;
+  padding: 1px 8px 1px 0; line-height: 1.7;
+  font-family: var(--font-mono); font-size: .78rem;
+  border-left: 3px solid transparent;
+  transition: background .2s, border-color .2s;
+}
+.code-line.active { background: var(--active-line); border-left-color: var(--accent); }
+.gutter {
+  color: var(--text-dim); min-width: 30px; text-align: right;
+  padding-right: 10px; user-select: none; font-size: .74rem; padding-top: 1px;
+}
+.code-text { white-space: pre; }
+.keyword { color: var(--blue); }
+.type    { color: var(--blue); }
+.var     { color: var(--lt-blue); }
+.num     { color: #b5cea8; }
+.str     { color: var(--orange); }
+.comment { color: #6a9955; font-style: italic; }
+.control { color: var(--purple); }
+.fn      { color: var(--yellow); }
+
+/* ── VIZ PANEL (middle column) ── */
+#vizPanel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+#vizArea {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 12px 20px;
+  gap: 14px;
+}
+
+/* ── Prefix result strip ── */
+.prefix-section { flex-shrink: 0; }
+.viz-sub-title {
+  font-size: .7rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .07em;
+  margin-bottom: 8px;
+}
+#prefixRow { display: flex; gap: 4px; flex-wrap: wrap; min-height: 34px; }
+.prefix-box {
+  width: 32px; height: 32px;
+  border: 1px solid var(--green); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: .82rem; font-weight: 700;
+  background: rgba(78,201,176,.15); color: var(--green);
+}
+.prefix-empty { font-family: var(--font-mono); font-size: .78rem; color: var(--text-dim); font-style: italic; }
+
+/* ── Grid of strings ── */
+.grid-section { flex-shrink: 0; }
+#stringGrid {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: max-content;
+}
+.str-row {
+  display: flex; align-items: center; gap: 6px;
+  transition: opacity .3s;
+}
+.row-label {
+  font-family: var(--font-mono); font-size: .74rem;
+  color: var(--text-dim); min-width: 60px; white-space: nowrap;
+}
+.str-row.cursor .row-label { color: var(--pointer-alt); font-weight: 700; }
+.char-box {
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  border: 2px solid var(--border); border-radius: 6px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: .95rem;
+  background: var(--panel-bg);
+  transition: border-color .3s, background .3s, transform .2s;
+}
+.char-box .idx-label { font-size: .55rem; color: var(--text-dim); margin-top: 2px; font-weight: 400; }
+.char-box.oob {
+  border-style: dashed; color: var(--text-dim);
+  background: transparent; font-size: .7rem;
+}
+
+/* column highlight states */
+.char-box.col       { border-color: var(--accent);      background: rgba(0,122,204,.14); }
+.char-box.base      { border-color: var(--red);          background: rgba(244,71,71,.15); }
+.char-box.comparing { border-color: var(--yellow);       background: rgba(220,220,170,.18); transform: translateY(-2px); }
+.char-box.matched   { border-color: var(--green);        background: rgba(78,201,176,.18); }
+.char-box.mismatch  { border-color: var(--red);          background: rgba(244,71,71,.30); animation: shake .3s ease; }
+
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  75%{transform:translateX(5px)}
+}
+
+/* column index header */
+#colHeader { display: inline-flex; gap: 6px; margin-left: 66px; margin-bottom: 2px; }
+.col-idx {
+  width: 40px; text-align: center;
+  font-family: var(--font-mono); font-size: .66rem; color: var(--text-dim);
+}
+.col-idx.active { color: var(--accent); font-weight: 700; }
+
+/* status bar */
+#statusBar {
+  flex-shrink: 0;
+  background: #1a1a2e;
+  border-top: 1px solid var(--border);
+  padding: 9px 16px;
+  font-size: .82rem; color: var(--green);
+  min-height: 46px; max-height: 70px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+/* ── VARIABLES PANEL ── */
+#varPanel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+}
+.mem-section { margin-bottom: 16px; }
+.mem-label {
+  font-size: .66rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border); padding-bottom: 4px;
+}
+.var-row {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  padding: 4px 0; border-bottom: 1px solid #2d2d2d;
+}
+.var-name { font-family: var(--font-mono); font-size: .76rem; color: var(--lt-blue); }
+.var-val  {
+  font-family: var(--font-mono); font-size: .8rem;
+  color: var(--green); font-weight: 600;
+  padding: 2px 6px; border-radius: 3px; max-width: 110px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@keyframes flash { 0%,100%{background:transparent} 50%{background:rgba(0,122,204,.35)} }
+.var-val.changed { animation: flash .5s ease; }
+
+/* result badge */
+#resultBadge {
+  display: none;
+  margin: 8px 0; padding: 9px 12px;
+  border-radius: 6px; font-size: .85rem; font-weight: 700; text-align: center;
+  word-break: break-all;
+}
+#resultBadge.res-ok { background: rgba(78,201,176,.2); border: 1px solid var(--green); color: var(--green); }
+
+/* legend / info box */
+.info-box {
+  background: #2d2d2d; border: 1px solid var(--border);
+  border-radius: 5px; padding: 8px 10px;
+  font-size: .73rem; color: var(--text-dim); line-height: 1.7;
+}
+.info-box b { color: var(--yellow); }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HEADER ═══════════ -->
+<header>
+  <span class="title">Longest Common Prefix</span>
+  <span class="lc-badge">LeetCode #14</span>
+  <div class="input-group">
+    <label>Input:</label>
+    <input type="text" id="inputStr" value="flower,flow,flight" />
+    <button onclick="loadInput()">Load</button>
+  </div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap">
+      <span>Speed</span>
+      <input type="range" id="speed" min="1" max="100" value="50" />
+    </div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+
+<!-- ═══════════ MAIN ═══════════ -->
+<main>
+
+  <!-- LEFT: CODE PANEL -->
+  <div class="panel">
+    <div class="panel-header">Java Code — Vertical Scanning</div>
+    <div id="codePanel">
+      <div class="code-line" id="line-1"><span class="gutter">1</span><span class="code-text"><span class="keyword">public</span> <span class="type">String</span> <span class="fn">longestCommonPrefix</span>(<span class="type">String</span>[] <span class="var">strs</span>) {</span></div>
+      <div class="code-line" id="line-2"><span class="gutter">2</span><span class="code-text">  <span class="control">if</span> (<span class="var">strs</span>.<span class="var">length</span> == <span class="num">0</span>) <span class="control">return</span> <span class="str">""</span>;</span></div>
+      <div class="code-line" id="line-3"><span class="gutter">3</span><span class="code-text"></span></div>
+      <div class="code-line" id="line-4"><span class="gutter">4</span><span class="code-text">  <span class="comment">// scan column i across every string</span></span></div>
+      <div class="code-line" id="line-5"><span class="gutter">5</span><span class="code-text">  <span class="control">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">strs</span>[<span class="num">0</span>].<span class="fn">length</span>(); <span class="var">i</span>++) {</span></div>
+      <div class="code-line" id="line-6"><span class="gutter">6</span><span class="code-text">    <span class="type">char</span> <span class="var">c</span> = <span class="var">strs</span>[<span class="num">0</span>].<span class="fn">charAt</span>(<span class="var">i</span>);</span></div>
+      <div class="code-line" id="line-7"><span class="gutter">7</span><span class="code-text">    <span class="control">for</span> (<span class="type">int</span> <span class="var">j</span> = <span class="num">1</span>; <span class="var">j</span> &lt; <span class="var">strs</span>.<span class="var">length</span>; <span class="var">j</span>++) {</span></div>
+      <div class="code-line" id="line-8"><span class="gutter">8</span><span class="code-text">      <span class="control">if</span> (<span class="var">i</span> == <span class="var">strs</span>[<span class="var">j</span>].<span class="fn">length</span>()</span></div>
+      <div class="code-line" id="line-9"><span class="gutter">9</span><span class="code-text">          || <span class="var">strs</span>[<span class="var">j</span>].<span class="fn">charAt</span>(<span class="var">i</span>) != <span class="var">c</span>) {</span></div>
+      <div class="code-line" id="line-10"><span class="gutter">10</span><span class="code-text">        <span class="control">return</span> <span class="var">strs</span>[<span class="num">0</span>].<span class="fn">substring</span>(<span class="num">0</span>, <span class="var">i</span>);</span></div>
+      <div class="code-line" id="line-11"><span class="gutter">11</span><span class="code-text">      }</span></div>
+      <div class="code-line" id="line-12"><span class="gutter">12</span><span class="code-text">    }</span></div>
+      <div class="code-line" id="line-13"><span class="gutter">13</span><span class="code-text">  }</span></div>
+      <div class="code-line" id="line-14"><span class="gutter">14</span><span class="code-text">  <span class="control">return</span> <span class="var">strs</span>[<span class="num">0</span>]; <span class="comment">// first string is the prefix</span></span></div>
+      <div class="code-line" id="line-15"><span class="gutter">15</span><span class="code-text">}</span></div>
+    </div>
+  </div>
+
+  <!-- MIDDLE: VIZ PANEL -->
+  <div class="panel" id="vizPanel">
+    <div class="panel-header">Visualization — Column-by-Column Scan</div>
+    <div id="vizArea">
+
+      <!-- Section 1: Prefix built so far -->
+      <div class="prefix-section">
+        <div class="viz-sub-title">✅ Common Prefix So Far</div>
+        <div id="prefixRow"></div>
+      </div>
+
+      <!-- Section 2: The grid of strings -->
+      <div class="grid-section">
+        <div class="viz-sub-title">🔤 Strings (compared vertically, column i)</div>
+        <div id="colHeader"></div>
+        <div id="stringGrid"></div>
+      </div>
+
+    </div>
+    <div id="statusBar">→ Loading…</div>
+  </div>
+
+  <!-- RIGHT: VARIABLES PANEL -->
+  <div class="panel">
+    <div class="panel-header">Variables</div>
+    <div id="varPanel">
+      <div class="mem-section">
+        <div class="mem-label">Stack</div>
+        <div class="var-row"><span class="var-name">i (column)</span><span class="var-val" id="var-i">—</span></div>
+        <div class="var-row"><span class="var-name">j (row)</span><span class="var-val" id="var-j">—</span></div>
+        <div class="var-row"><span class="var-name">c = strs[0][i]</span><span class="var-val" id="var-c">—</span></div>
+        <div class="var-row"><span class="var-name">strs[j][i]</span><span class="var-val" id="var-cj">—</span></div>
+        <div class="var-row"><span class="var-name">match?</span><span class="var-val" id="var-match">—</span></div>
+        <div class="var-row"><span class="var-name">prefix</span><span class="var-val" id="var-prefix">""</span></div>
+      </div>
+
+      <div id="resultBadge"></div>
+
+      <div class="mem-section">
+        <div class="mem-label">Legend</div>
+        <div class="info-box">
+          <span class="dot" style="background:var(--red)"></span> c — base char (strs[0][i])<br>
+          <span class="dot" style="background:var(--yellow)"></span> strs[j][i] being compared<br>
+          <span class="dot" style="background:var(--green)"></span> Column fully matched ✓<br>
+          <span class="dot" style="background:rgba(244,71,71,.6)"></span> Mismatch / out of bounds ✗
+        </div>
+      </div>
+
+      <div class="mem-section" style="margin-top:10px">
+        <div class="mem-label">Strategy</div>
+        <div class="info-box">
+          Fix a column <b style="color:var(--red)">i</b>, take base char
+          <b>c = strs[0][i]</b>. Check every other string
+          <b style="color:var(--pointer-alt)">j</b> at that column.
+          First mismatch (or a string that ends) → prefix is
+          <b>strs[0].substring(0, i)</b>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ════════════════════════════════
+// 1. STATE
+// ════════════════════════════════
+let steps = [];
+let currentStep = 0;
+let isPlaying = false;
+let timer = null;
+let strs = [];
+let maxLen = 0;
+
+// ════════════════════════════════
+// 2. ALGORITHM SIMULATOR
+// ════════════════════════════════
+function generateSteps(arr) {
+  const history = [];
+
+  function snap(line, desc, extra) {
+    history.push(Object.assign({
+      line, desc,
+      i: -1, j: -1, c: '—', cj: '—', match: '—',
+      prefixLen: 0, phase: '', cursorRow: -1, mismatchRow: -1
+    }, extra || {}));
+  }
+
+  if (arr.length === 0) {
+    snap(2, 'strs is empty → nothing to compare. Return "".', { phase: 'done', prefixLen: 0 });
+    return history;
+  }
+
+  snap(2, `strs has ${arr.length} string(s), so it is not empty — continue.`, { phase: 'start' });
+
+  const base = arr[0];
+
+  // outer loop over columns of strs[0]
+  for (let i = 0; i < base.length; i++) {
+    const c = base[i];
+    snap(5, `Outer loop: i=${i} < strs[0].length=${base.length} → true. Scan column ${i}.`,
+      { i, c, phase: 'col', prefixLen: i, cursorRow: 0 });
+
+    snap(6, `Take base char c = strs[0][${i}] = '${c}' — every other string must match this here.`,
+      { i, c, phase: 'base', prefixLen: i, cursorRow: 0 });
+
+    // inner loop over the other strings
+    let columnOk = true;
+    for (let j = 1; j < arr.length; j++) {
+      snap(7, `Inner loop: j=${j} < strs.length=${arr.length} → true. Check strs[${j}] at column ${i}.`,
+        { i, j, c, phase: 'jcheck', prefixLen: i, cursorRow: j });
+
+      // out of bounds?
+      if (i === arr[j].length) {
+        snap(8, `strs[${j}] = "${arr[j]}" has length ${arr[j].length}, and i=${i} — this string ended! It can't extend the prefix.`,
+          { i, j, c, cj: '∅', match: '✗ ended', phase: 'oob', prefixLen: i, cursorRow: j, mismatchRow: j });
+        snap(10, `Return strs[0].substring(0, ${i}) = "${base.substring(0, i)}".`,
+          { i, j, c, cj: '∅', match: '✗ ended', phase: 'done', prefixLen: i, cursorRow: j, mismatchRow: j });
+        return history;
+      }
+
+      const cj = arr[j][i];
+      snap(9, `Compare strs[${j}][${i}] = '${cj}' against c = '${c}'.`,
+        { i, j, c, cj, match: cj === c ? '✓ match' : '✗ differ', phase: 'compare', prefixLen: i, cursorRow: j });
+
+      if (cj !== c) {
+        snap(10, `'${cj}' ≠ '${c}' — mismatch at column ${i}. Prefix stops here. Return "${base.substring(0, i)}".`,
+          { i, j, c, cj, match: '✗ differ', phase: 'done', prefixLen: i, cursorRow: j, mismatchRow: j });
+        return history;
+      }
+    }
+
+    snap(7, `Inner loop done for column ${i}: every string had '${c}' here → column matches. Prefix is now "${base.substring(0, i + 1)}".`,
+      { i, c, phase: 'colmatch', prefixLen: i + 1, cursorRow: -1 });
+  }
+
+  snap(14, `Outer loop finished — every column of strs[0] matched across all strings. The whole first string is the prefix. Return "${base}".`,
+    { i: base.length, phase: 'done', prefixLen: base.length });
+
+  return history;
+}
+
+// ════════════════════════════════
+// 3. BUILD DOM
+// ════════════════════════════════
+function buildGrid() {
+  maxLen = strs.reduce((m, s) => Math.max(m, s.length), 0);
+
+  // column header
+  const colHeader = document.getElementById('colHeader');
+  colHeader.innerHTML = '';
+  for (let i = 0; i < maxLen; i++) {
+    const c = document.createElement('div');
+    c.className = 'col-idx';
+    c.id = 'col-idx-' + i;
+    c.textContent = i;
+    colHeader.appendChild(c);
+  }
+
+  const grid = document.getElementById('stringGrid');
+  grid.innerHTML = '';
+  strs.forEach((s, j) => {
+    const row = document.createElement('div');
+    row.className = 'str-row';
+    row.id = 'row-' + j;
+
+    const label = document.createElement('div');
+    label.className = 'row-label';
+    label.textContent = `strs[${j}]`;
+    row.appendChild(label);
+
+    for (let i = 0; i < maxLen; i++) {
+      const box = document.createElement('div');
+      box.id = `box-${j}-${i}`;
+      if (i < s.length) {
+        box.className = 'char-box';
+        box.innerHTML = `<span>${s[i]}</span><span class="idx-label">${i}</span>`;
+      } else {
+        box.className = 'char-box oob';
+        box.innerHTML = `<span>∅</span>`;
+      }
+      row.appendChild(box);
+    }
+    grid.appendChild(row);
+  });
+}
+
+function buildPrefixRow(len) {
+  const row = document.getElementById('prefixRow');
+  row.innerHTML = '';
+  if (!strs.length || len <= 0) {
+    const e = document.createElement('span');
+    e.className = 'prefix-empty';
+    e.textContent = '(empty prefix so far)';
+    row.appendChild(e);
+    return;
+  }
+  const prefix = strs[0].substring(0, len);
+  for (const ch of prefix) {
+    const b = document.createElement('div');
+    b.className = 'prefix-box';
+    b.textContent = ch;
+    row.appendChild(b);
+  }
+}
+
+// ════════════════════════════════
+// 4. RENDERER
+// ════════════════════════════════
+function applyStep(s) {
+  // a) Highlight code line
+  document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+  const lineEl = document.getElementById('line-' + s.line);
+  if (lineEl) {
+    lineEl.classList.add('active');
+    lineEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // b) Status + counter
+  document.getElementById('statusBar').textContent =
+    `→ Step ${currentStep + 1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent =
+    `Step ${currentStep + 1} / ${steps.length}`;
+
+  // c) Reset every box
+  strs.forEach((str, j) => {
+    for (let i = 0; i < maxLen; i++) {
+      const b = document.getElementById(`box-${j}-${i}`);
+      if (b) b.className = i < str.length ? 'char-box' : 'char-box oob';
+    }
+  });
+  // reset column header + row labels
+  for (let i = 0; i < maxLen; i++) {
+    const ch = document.getElementById('col-idx-' + i);
+    if (ch) ch.classList.remove('active');
+  }
+  strs.forEach((_, j) => {
+    const r = document.getElementById('row-' + j);
+    if (r) r.classList.remove('cursor');
+  });
+
+  const i = s.i;
+  const prefixLen = s.prefixLen;
+
+  // d) Mark matched columns (already-confirmed prefix) green
+  for (let col = 0; col < prefixLen; col++) {
+    strs.forEach((str, j) => {
+      if (col < str.length) {
+        const b = document.getElementById(`box-${j}-${col}`);
+        if (b) b.classList.add('matched');
+      }
+    });
+  }
+
+  // e) Highlight active column header
+  if (i >= 0 && i < maxLen) {
+    const ch = document.getElementById('col-idx-' + i);
+    if (ch) ch.classList.add('active');
+  }
+
+  // f) Cursor row label
+  if (s.cursorRow >= 0) {
+    const r = document.getElementById('row-' + s.cursorRow);
+    if (r) r.classList.add('cursor');
+  }
+
+  // g) Phase-specific column coloring
+  const colorBox = (j, col, cls) => {
+    const b = document.getElementById(`box-${j}-${col}`);
+    if (b) b.classList.add(cls);
+  };
+
+  if (i >= 0 && i < maxLen) {
+    switch (s.phase) {
+      case 'col':
+        // light up the whole column being scanned
+        strs.forEach((_, j) => colorBox(j, i, 'col'));
+        break;
+      case 'base':
+        colorBox(0, i, 'base');
+        break;
+      case 'jcheck':
+        colorBox(0, i, 'base');
+        if (s.j >= 0) colorBox(s.j, i, 'col');
+        break;
+      case 'compare':
+        colorBox(0, i, 'base');
+        if (s.j >= 0) colorBox(s.j, i, 'comparing');
+        break;
+      case 'oob':
+        colorBox(0, i, 'base');
+        if (s.mismatchRow >= 0) colorBox(s.mismatchRow, i, 'mismatch');
+        break;
+      case 'colmatch':
+        // whole column just confirmed — the matched loop above already greened cols < prefixLen
+        break;
+      case 'done':
+        if (s.mismatchRow >= 0 && i < maxLen) {
+          colorBox(0, i, 'base');
+          colorBox(s.mismatchRow, i, 'mismatch');
+        }
+        break;
+    }
+  }
+
+  // h) Prefix strip
+  buildPrefixRow(prefixLen);
+
+  // i) Variables
+  updateVar('var-i', i >= 0 ? i : '—');
+  updateVar('var-j', s.j >= 0 ? s.j : '—');
+  updateVar('var-c', s.c);
+  updateVar('var-cj', s.cj);
+  updateVar('var-match', s.match);
+  updateVar('var-prefix', strs.length ? '"' + strs[0].substring(0, prefixLen) + '"' : '""');
+
+  // j) Result badge
+  const badge = document.getElementById('resultBadge');
+  if (s.phase === 'done') {
+    const result = strs.length ? strs[0].substring(0, prefixLen) : '';
+    badge.style.display = 'block';
+    badge.className = 'res-ok';
+    badge.textContent = `Result = "${result}"`;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function updateVar(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = (val === null || val === undefined) ? '—' : String(val);
+  if (el.textContent !== v) {
+    el.textContent = v;
+    el.classList.remove('changed');
+    void el.offsetWidth;
+    el.classList.add('changed');
+  }
+}
+
+// ════════════════════════════════
+// 5. CONTROLS
+// ════════════════════════════════
+function nextStep() {
+  if (currentStep < steps.length - 1) { currentStep++; applyStep(steps[currentStep]); updateBtns(); }
+  else stopPlay();
+}
+function prevStep() {
+  if (currentStep > 0) { currentStep--; applyStep(steps[currentStep]); updateBtns(); }
+}
+function togglePlay() { isPlaying ? stopPlay() : startPlay(); }
+function startPlay() {
+  if (currentStep === steps.length - 1) currentStep = 0;
+  isPlaying = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  tick();
+}
+function stopPlay() {
+  isPlaying = false;
+  clearTimeout(timer);
+  document.getElementById('btnPlay').textContent = '▶ Play';
+}
+function tick() {
+  if (!isPlaying) return;
+  if (currentStep < steps.length - 1) {
+    nextStep();
+    const delay = 2100 - parseInt(document.getElementById('speed').value) * 20;
+    timer = setTimeout(tick, Math.max(200, delay));
+  } else stopPlay();
+}
+function updateBtns() {
+  document.getElementById('btnPrev').disabled = currentStep === 0;
+  document.getElementById('btnNext').disabled = currentStep === steps.length - 1;
+}
+
+// ════════════════════════════════
+// 6. INIT
+// ════════════════════════════════
+function loadInput() {
+  stopPlay();
+  const raw = document.getElementById('inputStr').value;
+  strs = raw.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  if (strs.length === 0) strs = ['']; // handle a single empty string gracefully
+  steps = generateSteps(strs);
+  currentStep = 0;
+  buildGrid();
+  buildPrefixRow(0);
+  applyStep(steps[0]);
+  updateBtns();
+}
+window.addEventListener('load', loadInput);
+</script>
+</body>
+</html>
