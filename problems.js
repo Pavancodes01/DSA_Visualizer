@@ -174,5 +174,12 @@ const problems = [
         category: "String",
         difficulty: "Hard",
         file: "problems/TextJustification.html"
+    },
+    {
+        id:25,
+        title:"Majority Element (#169)",
+        category: "Array",
+        difficulty: "Easy",
+        file: "problems/MajorityElement.html"
     }
 ];
