@@ -181,5 +181,12 @@ const problems = [
         category: "Array",
         difficulty: "Easy",
         file: "problems/MajorityElement.html"
+    },
+    {
+        id:26,
+        title:"Product of Array Except Self (#238)",
+        category: "Array",
+        difficulty: "Medium",
+        file: "problems/ProductOfArrayExceptSelf.html"
     }
 ];

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Product of Array Except Self — Visualizer</title>
+<style>
+:root {
+  --bg:          #1e1e1e;
+  --panel-bg:    #252526;
+  --border:      #3e3e42;
+  --text:        #d4d4d4;
+  --text-dim:    #858585;
+  --accent:      #007acc;
+  --active-line: #37373d;
+  --green:       #4ec9b0;
+  --yellow:      #dcdcaa;
+  --orange:      #ce9178;
+  --purple:      #c586c0;
+  --blue:        #569cd6;
+  --lt-blue:     #9cdcfe;
+  --red:         #f44747;
+  --pointer-alt: #50fa7b;
+  --font-mono:   'Consolas', 'Monaco', 'Courier New', monospace;
+  --font-ui:     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── HEADER ─────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.title { font-weight: 700; font-size: 1.05rem; color: var(--green); white-space: nowrap; }
+.input-group { display: flex; align-items: center; gap: 6px; }
+.input-group label { font-size: 0.8rem; color: var(--text-dim); }
+.input-group input[type=text] {
+  background: var(--bg); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 5px 8px; font-family: var(--font-mono); width: 130px; font-size: 0.85rem;
+}
+button {
+  background: var(--accent); color: #fff; border: none; border-radius: 4px;
+  padding: 6px 12px; cursor: pointer; font-size: 0.83rem; font-weight: 600;
+}
+button:hover:not(:disabled) { filter: brightness(1.15); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+.controls { display: flex; align-items: center; gap: 8px; }
+.speed-wrap { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-dim); }
+.step-counter { margin-left: auto; font-family: var(--font-mono); font-size: 0.85rem; color: var(--yellow); white-space: nowrap; }
+
+/* ── MAIN GRID ──────────────────────────── */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 400px 1fr 240px;
+  overflow: hidden;
+}
+.panel { border-right: 1px solid var(--border); overflow-y: auto; }
+.panel-title {
+  font-size: 0.72rem; letter-spacing: 1.5px; color: var(--text-dim);
+  padding: 8px 14px; border-bottom: 1px solid var(--border);
+  background: var(--panel-bg); position: sticky; top: 0; z-index: 5;
+}
+
+/* ── CODE PANEL ─────────────────────────── */
+#codePanel { font-family: var(--font-mono); font-size: 0.82rem; padding-bottom: 20px; }
+.code-line {
+  display: flex; padding: 2px 0; border-left: 3px solid transparent;
+  white-space: pre; line-height: 1.55;
+}
+.code-line.active { background: var(--active-line); border-left-color: var(--accent); }
+.gutter {
+  width: 34px; text-align: right; padding-right: 12px;
+  color: var(--text-dim); user-select: none; flex-shrink: 0;
+}
+.keyword { color: var(--blue); }
+.control { color: var(--purple); }
+.type    { color: var(--blue); }
+.var     { color: var(--lt-blue); }
+.num     { color: #b5cea8; }
+.comment { color: #6a9955; }
+.fname   { color: var(--yellow); }
+
+/* ── VIZ PANEL ──────────────────────────── */
+#vizPanel { display: flex; flex-direction: column; overflow: hidden; }
+#vizArea { flex: 1; overflow: auto; padding: 20px 24px; }
+
+.phase-banner {
+  display: inline-block; font-size: 0.78rem; font-weight: 700;
+  padding: 4px 12px; border-radius: 12px; margin-bottom: 22px;
+  border: 1px solid var(--border); color: var(--text-dim);
+  transition: all 0.3s;
+}
+.phase-banner.left  { border-color: var(--yellow); color: var(--yellow); background: rgba(220,220,170,0.08); }
+.phase-banner.right { border-color: var(--pointer-alt); color: var(--pointer-alt); background: rgba(80,250,123,0.08); }
+
+.arr-block { margin-bottom: 34px; }
+.arr-label {
+  font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-dim);
+  margin-bottom: 34px;
+}
+.arr-label .name { color: var(--lt-blue); font-weight: 700; }
+.arr-wrap { position: relative; height: 78px; }
+
+.arr-node {
+  width: 54px; height: 54px;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; font-size: 1.05rem;
+  position: absolute; top: 0;
+  transition: background 0.3s, border-color 0.3s, transform 0.3s;
+  background: var(--panel-bg);
+  font-family: var(--font-mono);
+}
+.arr-node .idx {
+  position: absolute; bottom: -22px; font-size: 0.7rem; color: var(--text-dim);
+  font-weight: 400; width: 100%; text-align: center; left: 0;
+}
+.arr-node.reading  { border-color: var(--orange); background: rgba(206,145,120,0.18); transform: scale(1.06); }
+.arr-node.writing  { border-color: var(--green); background: rgba(78,201,176,0.2); transform: scale(1.1); }
+.arr-node.done     { border-color: var(--green); }
+.arr-node.empty    { border-color: var(--border); color: var(--text-dim); }
+
+.pointer {
+  position: absolute; top: -32px;
+  width: 54px; text-align: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: 0.85rem;
+  color: var(--red);
+  transition: left 0.4s cubic-bezier(0.25,0.8,0.25,1), opacity 0.3s;
+}
+.pointer::after { content: '▼'; display: block; font-size: 0.7rem; }
+
+/* right variable chip */
+.right-chip {
+  display: inline-flex; align-items: center; gap: 10px;
+  border: 2px solid var(--pointer-alt); border-radius: 8px;
+  padding: 10px 16px; font-family: var(--font-mono);
+  background: rgba(80,250,123,0.06);
+  transition: opacity 0.3s, transform 0.3s;
+  margin-top: 4px;
+}
+.right-chip .lbl { color: var(--pointer-alt); font-weight: 700; font-size: 0.85rem; }
+.right-chip .val { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+.right-chip.pulse { animation: chipPulse 0.5s ease; }
+@keyframes chipPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+/* formula display */
+.formula {
+  margin-top: 26px; font-family: var(--font-mono); font-size: 0.95rem;
+  padding: 12px 16px; border-radius: 6px; background: var(--panel-bg);
+  border: 1px solid var(--border); min-height: 46px;
+  color: var(--text);
+}
+.formula .hl-o { color: var(--orange); font-weight: 700; }
+.formula .hl-g { color: var(--green); font-weight: 700; }
+.formula .hl-p { color: var(--pointer-alt); font-weight: 700; }
+.formula .dim  { color: var(--text-dim); }
+
+/* ── STATUS BAR ─────────────────────────── */
+.status-bar {
+  padding: 12px 18px; background: var(--panel-bg);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 0.86rem;
+  color: var(--green); min-height: 44px; line-height: 1.45;
+}
+
+/* ── VARIABLES PANEL ────────────────────── */
+#varsPanel { border-right: none; }
+.mem-label {
+  font-size: 0.68rem; letter-spacing: 1.5px; color: var(--text-dim);
+  padding: 10px 14px 4px;
+}
+.var-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 14px; font-family: var(--font-mono); font-size: 0.86rem;
+}
+.var-name { color: var(--lt-blue); }
+.var-val  { color: var(--text); font-weight: 700; border-radius: 4px; padding: 2px 8px; }
+@keyframes flash { 0%,100%{background:transparent} 50%{background:rgba(0,122,204,0.45)} }
+.var-val.changed { animation: flash 0.5s ease; }
+.heap-arr {
+  display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 14px 14px;
+}
+.heap-cell {
+  min-width: 32px; height: 30px; border: 1px solid var(--border); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 0.78rem;
+  transition: border-color 0.3s, background 0.3s;
+  padding: 0 4px;
+}
+.heap-cell.hot { border-color: var(--green); background: rgba(78,201,176,0.2); }
+
+@media (max-width: 980px) {
+  main { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+  .panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 40vh; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="title">Product of Array Except Self</span>
+  <div class="input-group">
+    <label>Input:</label>
+    <input type="text" id="inputArr" value="1,2,3,4" />
+    <button onclick="loadInput()">Load</button>
+  </div>
+  <div class="controls">
+    <button id="btnPrev" onclick="prevStep()">◀ Prev</button>
+    <button id="btnPlay" onclick="togglePlay()">▶ Play</button>
+    <button id="btnNext" onclick="nextStep()">Next ▶</button>
+    <div class="speed-wrap">
+      <span>Speed</span>
+      <input type="range" id="speed" min="1" max="100" value="50" />
+    </div>
+  </div>
+  <div class="step-counter" id="stepCounter">Step 1 / 1</div>
+</header>
+
+<main>
+  <!-- CODE PANEL -->
+  <div class="panel" id="codeWrap">
+    <div class="panel-title">JAVA CODE</div>
+    <div id="codePanel"></div>
+  </div>
+
+  <!-- VISUALIZATION PANEL -->
+  <div class="panel" id="vizPanel">
+    <div class="panel-title">VISUALIZATION</div>
+    <div id="vizArea">
+      <span class="phase-banner" id="phaseBanner">Not started</span>
+
+      <div class="arr-block">
+        <div class="arr-label"><span class="name">nums</span> (input — never changes)</div>
+        <div class="arr-wrap" id="numsWrap"></div>
+      </div>
+
+      <div class="arr-block">
+        <div class="arr-label"><span class="name">answer</span> (we build this)</div>
+        <div class="arr-wrap" id="ansWrap"></div>
+      </div>
+
+      <div class="right-chip" id="rightChip" style="opacity:0.25">
+        <span class="lbl">right =</span>
+        <span class="val" id="rightVal">—</span>
+      </div>
+
+      <div class="formula" id="formulaBox"><span class="dim">Press Play or Next ▶ to start the dry run…</span></div>
+    </div>
+    <div class="status-bar" id="statusBar">→ Loading…</div>
+  </div>
+
+  <!-- VARIABLES PANEL -->
+  <div class="panel" id="varsPanel">
+    <div class="panel-title">VARIABLES</div>
+    <div class="mem-label">STACK</div>
+    <div class="var-row"><span class="var-name">n</span><span class="var-val" id="var-n">—</span></div>
+    <div class="var-row"><span class="var-name">i</span><span class="var-val" id="var-i">—</span></div>
+    <div class="var-row"><span class="var-name">right</span><span class="var-val" id="var-right">—</span></div>
+    <div class="mem-label">HEAP — answer[]</div>
+    <div class="heap-arr" id="heapAns"></div>
+  </div>
+</main>
+
+<script>
+/* ─── CODE LINES (Java) ───────────────────────────── */
+const CODE = [
+  {n:1,  html:'<span class="keyword">public</span> <span class="type">int</span>[] <span class="fname">productExceptSelf</span>(<span class="type">int</span>[] <span class="var">nums</span>) {'},
+  {n:2,  html:'    <span class="type">int</span> <span class="var">n</span> = <span class="var">nums</span>.length;'},
+  {n:3,  html:'    <span class="type">int</span>[] <span class="var">answer</span> = <span class="keyword">new</span> <span class="type">int</span>[<span class="var">n</span>];'},
+  {n:4,  html:'    <span class="comment">// Pass 1: fill LEFT products (forward)</span>'},
+  {n:5,  html:'    <span class="var">answer</span>[<span class="num">0</span>] = <span class="num">1</span>;'},
+  {n:6,  html:'    <span class="control">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="num">1</span>; <span class="var">i</span> &lt; <span class="var">n</span>; <span class="var">i</span>++) {'},
+  {n:7,  html:'        <span class="var">answer</span>[<span class="var">i</span>] = <span class="var">answer</span>[<span class="var">i</span>-<span class="num">1</span>] * <span class="var">nums</span>[<span class="var">i</span>-<span class="num">1</span>];'},
+  {n:8,  html:'    }'},
+  {n:9,  html:'    <span class="comment">// Pass 2: apply RIGHT products (backward)</span>'},
+  {n:10, html:'    <span class="type">int</span> <span class="var">right</span> = <span class="num">1</span>;'},
+  {n:11, html:'    <span class="control">for</span> (<span class="type">int</span> <span class="var">i</span> = <span class="var">n</span>-<span class="num">1</span>; <span class="var">i</span> &gt;= <span class="num">0</span>; <span class="var">i</span>--) {'},
+  {n:12, html:'        <span class="var">answer</span>[<span class="var">i</span>] *= <span class="var">right</span>;   <span class="comment">// use FIRST</span>'},
+  {n:13, html:'        <span class="var">right</span> *= <span class="var">nums</span>[<span class="var">i</span>];    <span class="comment">// update SECOND</span>'},
+  {n:14, html:'    }'},
+  {n:15, html:'    <span class="control">return</span> <span class="var">answer</span>;'},
+  {n:16, html:'}'}
+];
+
+/* ─── STATE ───────────────────────────────────────── */
+let steps = [];
+let currentStep = 0;
+let isPlaying = false;
+let timer = null;
+let NUMS = [];
+
+const CELL = 62; // px spacing between array nodes
+
+/* ─── ALGORITHM SIMULATOR ─────────────────────────── */
+function generateSteps(nums) {
+  const h = [];
+  const n = nums.length;
+  const ans = new Array(n).fill(0);
+
+  const snap = (o) => h.push(Object.assign({
+    i: null, right: null, n: n, phase: null,
+    ans: ans.slice(),
+    readNums: [], readAns: [], writeAns: null,
+    formula: '', rightPulse: false
+  }, o));
+
+  snap({ line: 2, desc: `int n = nums.length → n = ${n}`,
+    formula: `<span class="dim">n = ${n}</span>` });
+
+  snap({ line: 3, desc: `Create answer[] of size ${n}. Java fills it with 0s.`,
+    formula: `<span class="dim">answer = [${ans.join(', ')}]</span>` });
+
+  // Pass 1
+  ans[0] = 1;
+  snap({ line: 5, phase: 'left', writeAns: 0,
+    desc: `answer[0] = 1 — there is NOTHING to the left of index 0, and an empty product is 1 (not 0!)`,
+    formula: `<span class="hl-g">answer[0]</span> = <span class="hl-g">1</span> <span class="dim">(empty left side)</span>` });
+
+  for (let i = 1; i <= n; i++) {
+    if (i < n) {
+      snap({ line: 6, phase: 'left', i,
+        desc: `Loop check: i=${i} < n=${n} → true, continue`,
+        formula: `<span class="dim">i = ${i}, keep going →</span>` });
+
+      const prod = ans[i-1] * nums[i-1];
+      snap({ line: 7, phase: 'left', i, readAns: [i-1], readNums: [i-1],
+        desc: `Read answer[${i-1}]=${ans[i-1]} (left product so far) and nums[${i-1}]=${nums[i-1]} (the previous element)`,
+        formula: `<span class="hl-g">answer[${i}]</span> = <span class="hl-o">answer[${i-1}]</span> × <span class="hl-o">nums[${i-1}]</span> = <span class="hl-o">${ans[i-1]}</span> × <span class="hl-o">${nums[i-1]}</span>` });
+
+      ans[i] = prod;
+      snap({ line: 7, phase: 'left', i, writeAns: i, readAns: [i-1], readNums: [i-1],
+        desc: `answer[${i}] = ${ans[i-1] === prod / nums[i-1] ? '' : ''}${prod} → product of everything LEFT of index ${i}`,
+        formula: `<span class="hl-g">answer[${i}]</span> = <span class="hl-o">${h[h.length-1].ans[i-1]}</span> × <span class="hl-o">${nums[i-1]}</span> = <span class="hl-g">${prod}</span>` });
+    } else {
+      snap({ line: 6, phase: 'left', i: null,
+        desc: `Loop check: i=${i} < n=${n} → false. Pass 1 done! answer[] now holds all LEFT products.`,
+        formula: `<span class="dim">Pass 1 complete: answer = [${ans.join(', ')}]</span>` });
+    }
+  }
+
+  // Pass 2
+  let right = 1;
+  snap({ line: 10, phase: 'right', right, rightPulse: true,
+    desc: `int right = 1 — there is NOTHING to the right of the last index, so start at 1`,
+    formula: `<span class="hl-p">right</span> = <span class="hl-p">1</span> <span class="dim">(empty right side)</span>` });
+
+  for (let i = n - 1; i >= -1; i--) {
+    if (i >= 0) {
+      snap({ line: 11, phase: 'right', i, right,
+        desc: `Loop check: i=${i} >= 0 → true, continue (walking backwards ←)`,
+        formula: `<span class="dim">i = ${i}, walking left ←</span>` });
+
+      const before = ans[i];
+      ans[i] = before * right;
+      snap({ line: 12, phase: 'right', i, right, writeAns: i,
+        desc: `USE first: answer[${i}] = ${before} (left product) × ${right} (right product) = ${ans[i]} ✓ FINAL for index ${i}`,
+        formula: `<span class="hl-g">answer[${i}]</span> = <span class="hl-o">${before}</span> <span class="dim">(left)</span> × <span class="hl-p">${right}</span> <span class="dim">(right)</span> = <span class="hl-g">${ans[i]}</span>` });
+
+      const newRight = right * nums[i];
+      snap({ line: 13, phase: 'right', i, right: newRight, readNums: [i], rightPulse: true,
+        desc: `UPDATE second: right = ${right} × nums[${i}]=${nums[i]} → ${newRight}. Now 'right' includes index ${i}, ready for index ${i-1}`,
+        formula: `<span class="hl-p">right</span> = <span class="hl-p">${right}</span> × <span class="hl-o">${nums[i]}</span> = <span class="hl-p">${newRight}</span>` });
+      right = newRight;
+    } else {
+      snap({ line: 11, phase: 'right', i: null, right,
+        desc: `Loop check: i=-1 >= 0 → false. Pass 2 done!`,
+        formula: `<span class="dim">Pass 2 complete</span>` });
+    }
+  }
+
+  snap({ line: 15, phase: 'done', right,
+    desc: `return answer = [${ans.join(', ')}] 🎉  Time O(n), extra space O(1)`,
+    formula: `<span class="hl-g">return [${ans.join(', ')}]</span>` });
+
+  return h;
+}
+
+/* ─── DOM BUILDERS ────────────────────────────────── */
+function buildCode() {
+  const panel = document.getElementById('codePanel');
+  panel.innerHTML = CODE.map(l =>
+    `<div class="code-line" id="line-${l.n}"><span class="gutter">${l.n}</span><span class="code-text">${l.html}</span></div>`
+  ).join('');
+}
+
+function buildDOM(nums) {
+  NUMS = nums;
+  const numsWrap = document.getElementById('numsWrap');
+  const ansWrap  = document.getElementById('ansWrap');
+
+  numsWrap.innerHTML = nums.map((v, idx) =>
+    `<div class="arr-node" id="nums-${idx}" style="left:${idx*CELL}px">${v}<span class="idx">${idx}</span></div>`
+  ).join('') + `<div class="pointer" id="ptrI" style="left:0; opacity:0">i</div>`;
+
+  ansWrap.innerHTML = nums.map((_, idx) =>
+    `<div class="arr-node empty" id="ans-${idx}" style="left:${idx*CELL}px">0<span class="idx">${idx}</span></div>`
+  ).join('');
+
+  document.getElementById('heapAns').innerHTML = nums.map((_, idx) =>
+    `<div class="heap-cell" id="heap-${idx}">0</div>`
+  ).join('');
+}
+
+/* ─── RENDERER ────────────────────────────────────── */
+function applyStep(s) {
+  // code highlight
+  document.querySelectorAll('.code-line').forEach(el => el.classList.remove('active'));
+  const line = document.getElementById(`line-${s.line}`);
+  if (line) { line.classList.add('active'); line.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+
+  // status + counter
+  document.getElementById('statusBar').textContent = `→ Step ${currentStep+1}/${steps.length}: ${s.desc}`;
+  document.getElementById('stepCounter').textContent = `Step ${currentStep+1} / ${steps.length}`;
+
+  // phase banner
+  const banner = document.getElementById('phaseBanner');
+  banner.className = 'phase-banner';
+  if (s.phase === 'left')       { banner.classList.add('left');  banner.textContent = 'PASS 1 → LEFT PRODUCTS (forward)'; }
+  else if (s.phase === 'right') { banner.classList.add('right'); banner.textContent = 'PASS 2 ← RIGHT PRODUCTS (backward)'; }
+  else if (s.phase === 'done')  { banner.classList.add('right'); banner.textContent = '✓ DONE'; }
+  else banner.textContent = 'SETUP';
+
+  // pointer i
+  const ptr = document.getElementById('ptrI');
+  if (s.i === null || s.i === undefined) { ptr.style.opacity = 0; }
+  else { ptr.style.opacity = 1; ptr.style.left = `${s.i * CELL}px`; }
+
+  // nums nodes: reading highlight
+  NUMS.forEach((_, idx) => {
+    const el = document.getElementById(`nums-${idx}`);
+    el.className = 'arr-node' + (s.readNums.includes(idx) ? ' reading' : '');
+  });
+
+  // answer nodes: value + highlight
+  s.ans.forEach((v, idx) => {
+    const el = document.getElementById(`ans-${idx}`);
+    el.childNodes[0].nodeValue = v;
+    let cls = 'arr-node';
+    if (s.writeAns === idx) cls += ' writing';
+    else if (s.readAns.includes(idx)) cls += ' reading';
+    else if (v === 0) cls += ' empty';
+    else if (s.phase === 'done') cls += ' done';
+    el.className = cls;
+
+    const hc = document.getElementById(`heap-${idx}`);
+    hc.textContent = v;
+    hc.className = 'heap-cell' + (s.writeAns === idx ? ' hot' : '');
+  });
+
+  // right chip
+  const chip = document.getElementById('rightChip');
+  const rv = document.getElementById('rightVal');
+  if (s.right === null || s.right === undefined) { chip.style.opacity = 0.25; rv.textContent = '—'; }
+  else {
+    chip.style.opacity = 1; rv.textContent = s.right;
+    if (s.rightPulse) { chip.classList.remove('pulse'); void chip.offsetWidth; chip.classList.add('pulse'); }
+  }
+
+  // formula
+  document.getElementById('formulaBox').innerHTML = s.formula || '&nbsp;';
+
+  // variables panel
+  updateVar('var-n', s.n);
+  updateVar('var-i', s.i);
+  updateVar('var-right', s.right);
+}
+
+function updateVar(id, newVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const display = (newVal === null || newVal === undefined) ? '—' : newVal;
+  if (el.textContent != display) {
+    el.textContent = display;
+    el.classList.remove('changed');
+    void el.offsetWidth;
+    el.classList.add('changed');
+  }
+}
+
+/* ─── CONTROLS ────────────────────────────────────── */
+function nextStep() {
+  if (currentStep < steps.length - 1) { currentStep++; applyStep(steps[currentStep]); updateBtns(); }
+  else stopPlay();
+}
+function prevStep() {
+  if (currentStep > 0) { currentStep--; applyStep(steps[currentStep]); updateBtns(); }
+}
+function togglePlay() { isPlaying ? stopPlay() : startPlay(); }
+function startPlay() {
+  if (currentStep === steps.length - 1) currentStep = 0;
+  isPlaying = true;
+  document.getElementById('btnPlay').textContent = '⏸ Pause';
+  tick();
+}
+function stopPlay() {
+  isPlaying = false;
+  clearTimeout(timer);
+  document.getElementById('btnPlay').textContent = '▶ Play';
+}
+function tick() {
+  if (!isPlaying) return;
+  if (currentStep < steps.length - 1) {
+    nextStep();
+    const delay = 2100 - parseInt(document.getElementById('speed').value) * 20;
+    timer = setTimeout(tick, delay);
+  } else stopPlay();
+}
+function updateBtns() {
+  document.getElementById('btnPrev').disabled = currentStep === 0;
+  document.getElementById('btnNext').disabled = currentStep === steps.length - 1;
+}
+
+/* ─── INIT ────────────────────────────────────────── */
+function loadInput() {
+  stopPlay();
+  const raw = document.getElementById('inputArr').value;
+  let input = raw.split(',').map(s => parseInt(s.trim(), 10)).filter(x => !isNaN(x));
+  if (input.length < 2) input = [1, 2, 3, 4]; // problem guarantees n >= 2
+  document.getElementById('inputArr').value = input.join(',');
+  steps = generateSteps(input);
+  currentStep = 0;
+  buildDOM(input);
+  applyStep(steps[0]);
+  updateBtns();
+}
+
+buildCode();
+window.addEventListener('load', loadInput);
+</script>
+</body>
+</html>
